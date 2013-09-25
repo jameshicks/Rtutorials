@@ -1,4 +1,4 @@
-Rtutorials
+R tutorials
 ==========
 
 Tutorials for R written in Rmarkdown. The files and folders above are source code for the tutorials. .Rmd files are R markdown files openable in R studio. 
