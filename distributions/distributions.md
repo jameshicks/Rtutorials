@@ -1,0 +1,323 @@
+Probability Distributions (and how they can arise in genetics)
+========================================================
+
+
+```r
+library(ggplot2)
+library(reshape2)
+set.seed(12345)
+```
+
+
+Probability Distribution
+-----
+
+### Probability Mass Function
+The probability mass is a measure of where in a distribution the probability is. It is only defined for discrete distributions. Consider the probability mass for this observing genotype two minor alleles in HWE with an MAF of .5:
+
+```r
+probs <- data.frame(genotype = c("AA", "Aa", "aa"), probs = c(0.25, 0.5, 0.25))
+ggplot(probs, aes(x = genotype, y = probs, fill = genotype)) + geom_bar(stat = "identity")
+```
+
+![plot of chunk hwepmfcommon](figure/hwepmfcommon.png) 
+
+Most of the probability in this distribution is in 'Aa' and that makes sense because both 'A' and 'a' are equally common but theres two different ways to get 'Aa': Aa and aA. Now look at a rarer (A) allele in HWE. 
+
+```r
+p <- 0.1
+probs <- data.frame(genotype = c("AA", "Aa", "aa"), probs = c(p^2, 2 * p * (1 - 
+    p), (1 - p)^2))
+ggplot(probs, aes(x = genotype, y = probs, fill = genotype)) + geom_bar(stat = "identity")
+```
+
+![plot of chunk hwepmfrare](figure/hwepmfrare.png) 
+
+Most of the probability here is in 'aa' because the A allele is so rare, that most of the probability is in observing an 'aa' genotype. 
+### Cumulative Distribution Function 
+The Cumulative density function describes the probability of finding a value as or less extreme. This can be considered as the integral of the PMF or PDF. Here's a normal PDF and CDF.
+
+
+### Probability Density Function
+Continuous distributions don't have probability mass functions, because the probability of observing a value infinitely precise to fit a specific point on a distribution is very small. Instead they have probability density functions, which give relative amounts of probability at a point. To find the actual probability within a region of a distribution you have to integrate over a certain region in the distribution (i.e. use the CDF.)
+
+
+```r
+norms <- rnorm(1000)
+ggplot(as.data.frame(norms), aes(x = norms)) + geom_density() + stat_function(fun = dnorm, 
+    color = "blue", lty = "dotted")
+```
+
+![plot of chunk normpdf](figure/normpdf.png) 
+
+
+### Expected Value
+The expected value (or mean) of a distribution is the mean of all outcomes weighted by the probability of that outcome occurring (or probability densities for a continuous distribution). It effectively describes what value would be most common after sampling infinitely many times from the distribution. Here the expected value of the normal distribution is highlighted in red. The sample mean may not fall on the red line, but if you kept sampling, it would fall there eventually (this is called the law of large numbers). 
+
+```r
+mu <- 50
+sigma <- 5
+norms <- rnorm(1000, mean = mu, sd = sigma)
+ggplot(as.data.frame(norms), aes(x = norms)) + geom_histogram(binwidth = 1) + 
+    geom_vline(xintercept = mu, color = "red", lty = "dashed")
+```
+
+![plot of chunk expectedvalue](figure/expectedvalue.png) 
+
+
+### Variance
+The variance describes how far away from the expected value that the values are spread in the distribution. 
+
+Distributions in R
+-----
+
+R has these functions built in for most common distributions. Each distribution has a root name. The root name for the normal distribution is 'norm'. The individual functions are then called by their letter followed by the root name:
+* `pnorm` is the normal CDF.
+* `qnorm` is the normal inverse CDF
+* `dnorm` is the normal PDF
+* `rnorm` generates a random variable from a normal distribution. 
+
+A note on graphics
+-----
+All of these distributions have a mathematical function that probabilities can be obtained with. However I've chosen here to instead sample variables from a distribution, and then plot the density of the sample. I think this is useful because in real world situations you won't have an infinite sample of datapoints, and your data may have odd lumps that occur by chance. If you take larger and larger samples, the distribution of the datapoints will more clearly represent the equation for the distribution. The blue represents the distribution of the sample, while the red represents the actual distribution it's drawn from. 
+
+```r
+# 10 Datapoints: looks pretty non normal.
+norms <- rnorm(10)
+ggplot(as.data.frame(norms), aes(x = norms)) + geom_density(color = "blue", 
+    alpha = 3/4) + stat_function(fun = dnorm, color = "red", alpha = 3/4)
+```
+
+![plot of chunk lawlargenums](figure/lawlargenums1.png) 
+
+```r
+
+# 50 Datapoints: we're getting there!
+norms <- rnorm(50)
+ggplot(as.data.frame(norms), aes(x = norms)) + geom_density(color = "blue", 
+    alpha = 3/4) + stat_function(fun = dnorm, color = "red", alpha = 3/4)
+```
+
+![plot of chunk lawlargenums](figure/lawlargenums2.png) 
+
+```r
+# 100 Datapoints: not too shabby.
+norms <- rnorm(100)
+ggplot(as.data.frame(norms), aes(x = norms)) + geom_density(color = "blue", 
+    alpha = 3/4) + stat_function(fun = dnorm, color = "red", alpha = 3/4)
+```
+
+![plot of chunk lawlargenums](figure/lawlargenums3.png) 
+
+```r
+
+# 10^5 Datapoints: pretty normal!
+norms <- rnorm(10^5)
+ggplot(as.data.frame(norms), aes(x = norms)) + geom_density(color = "blue", 
+    alpha = 3/4) + stat_function(fun = dnorm, color = "red", alpha = 3/4)
+```
+
+![plot of chunk lawlargenums](figure/lawlargenums4.png) 
+
+
+The Central Limit Theorem
+-----
+
+```r
+popn <- rnorm(1e+06, mean = 100, sd = 10)
+samp_mean <- numeric(0)
+for (x in 1:2500) {
+    samp_mean[x] <- mean(sample(popn, 50))
+}
+ggplot(as.data.frame(samp_mean), aes(x = samp_mean)) + geom_histogram(binwidth = 0.1) + 
+    geom_rug(color = "red", alpha = 0.05) + geom_vline(xintercept = 100, color = "green", 
+    alpha = 0.5, lty = "dashed")
+```
+
+```
+## Warning: position_stack requires constant width: output may be incorrect
+```
+
+![plot of chunk centrallimit](figure/centrallimit.png) 
+
+Discrete Distributions
+-----
+
+### The Binomial Distribution
+The binomial distribution describes the number of 'successes' (*k*) that occur with probability *p* in *n* trials. This is sampling with replacement: that is, the population you're sampling from is infinitely large. The binomal distribution is given as: $$Pr(X = k) = {n\choose k}p^k(1-p)^{n-k}$$
+
+```r
+nrep <- 1000
+# k=20,p=.5
+qplot(rbinom(100, 20, 0.5))
+```
+
+```
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust
+## this.
+```
+
+![plot of chunk binomial](figure/binomial1.png) 
+
+```r
+# k=20,p=.1
+qplot(rbinom(100, 20, 0.1))
+```
+
+```
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust
+## this.
+```
+
+![plot of chunk binomial](figure/binomial2.png) 
+
+```r
+# k=20,p=.1
+qplot(rbinom(100, 20, 0.05))
+```
+
+```
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust
+## this.
+```
+
+![plot of chunk binomial](figure/binomial3.png) 
+
+#### Shortcuts
+* For large numbers of trials, the binomial distribution approaches the normal.
+* For large numbers of trials with low probability of success, the binomial approximates the Poisson. (The 'Poisson Limit Theorem')
+
+### The Hypergeometric Distribution
+The binomial distribution arises when you consider sampling with replacement. For the situation where you're sampling without replacement, you want the hypergeometric distribution. The hypergeometric distribution is found in many pathway significance test, because youre sampling from a finite population (20000 genes). Fisher's Exact Test follows the hypergeometric distribution because it calculates the probability of finding a result as or more extreme than the observed configuration from a finite population (your sample).
+
+Because you're sampling from a finite population, the probabilities of a success change with each draw. The hypergeometric thus needs more parameters than the binomial: *N* is the size of the population, *K* is the number of successes in the whole population. *n* is the number of trials and *k* is the number of successes in *n* draws. The PMF is then given as: $$P(X=k) = {{{K \choose k} {{N-K} \choose {n-k}}}\over {N \choose n}}$$
+
+### Poisson Distribution
+Poisson distributions are a discrete value distribution useful for modelling *count* data over a fixed interval. For example, the number of recombinations/mutations/any other stochastic event occuring within a certain genomic region is Poisson-distributed. Poisson distributions have the property that the mean and variance are equal. This parameter is called $\lambda$. Poisson distributions have a product moment function of: $$\!f(k; \lambda)= \Pr(X=k)= \frac{\lambda^k e^{-\lambda}}{k!},$$
+
+```r
+qplot(rpois(1000, 0.5))
+```
+
+```
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust
+## this.
+```
+
+![plot of chunk poisson](figure/poisson.png) 
+
+
+#### The Negative Binomial
+The Poisson distribution has the sort-of impractical limitation that the mean is equal to the variance. This doesn't happen as much in real world situations as you might like, so you model these 'over-dispersed' distributions with the *negative binomial distribution*. This distribution models the number of 'successes' before reaching a number of 'failures'. In the literature, there's a couple different ways to express the negative binomial (e.g. whether *p* represents the probability of a success or failure), so be careful when reading!
+
+Continuous Distributions
+-----
+
+### The (Continuous) Uniform Distribution
+In this distribution, all outcomes are equally likely. This is not usually useful, but its important to note that **under the null hypothesis**, p-values are uniformly distributed between 0 and 1. Here's a density plot of a set of null p values. You'll see there's no real shape to the probability density and the tick marks don't follow a real pattern.. 
+
+```r
+norms <- rnorm(1e+05)
+pvals <- numeric()
+for (x in 1:1000) {
+    pvals[x] <- t.test(sample(norms, 20), sample(norms, 20))$p.value
+}
+ggplot(as.data.frame(pvals), aes(x = pvals)) + geom_histogram(binwidth = 0.025) + 
+    geom_rug(color = "blue", alpha = 0.1)
+```
+
+![plot of chunk uniformpvals](figure/uniformpvals.png) 
+
+
+### The Normal Distribution
+The standard deviation controls the spread around the mean:
+
+```r
+n <- 5 * 10^4
+# PDF. Calling rnorm without mean, defaults to mean=0
+norms <- data.frame(sd2 = rnorm(n, sd = 2), sd5 = rnorm(n, sd = 5), sd10 = rnorm(n, 
+    sd = 10))
+ggplot(melt(norms, id.vars = NULL), aes(x = value, fill = variable, color = variable)) + 
+    geom_density(alpha = 1/3)
+```
+
+![plot of chunk normal](figure/normal.png) 
+
+
+#### Does my data come from a normal distribution?
+Normality assumptions are important in many statistical tests. If you question the normality of your data, you can test it with `shapiro.test`.
+
+```r
+# 30 random normal variates
+shapiro.test(rnorm(30))
+```
+
+```
+## 
+## 	Shapiro-Wilk normality test
+## 
+## data:  rnorm(30) 
+## W = 0.9749, p-value = 0.6788
+```
+
+```r
+# 30 random variables ~ chisq(df=10)
+shapiro.test(rchisq(30, df = 2))
+```
+
+```
+## 
+## 	Shapiro-Wilk normality test
+## 
+## data:  rchisq(30, df = 2) 
+## W = 0.8386, p-value = 0.0003606
+```
+
+
+### The t Distribution
+
+t distributions are bell-shaped and centered with an expected value of 0. The spread of the distribution is determined by a parameter known as the *degrees of freedom*.
+
+```r
+n <- 5 * 10^4
+ts <- data.frame(df2 = rt(n, df = 2), df10 = rt(n, df = 10), df75 = rt(n, df = 150), 
+    normal = rnorm(n))
+ggplot(melt(ts, id.vars = NULL), aes(x = value, color = variable)) + geom_density(size = rel(1)) + 
+    xlim(-7, 7)
+```
+
+![plot of chunk tdist](figure/tdist.png) 
+
+#### Shortcuts
+* As df approaches infinity, the t distribution approximates the normal distribution. 
+* In situations where $n/(n-1)$ is approximately equal to 1, you can use the normal distribution. The traditional threshold for this is n=30. 
+
+### The Chi-square
+The Chi-square distribution describes errors, and is useful in any situation where you're describing deviations from an expected model. In HWE tests, for example you have a model for the genotype frequency, and you see how far your data deviates from the model. This is generalizable beyond contingency tables though: chi-square tests are available for arbitrary linear models as well [these are available in `anova` with `type="ChiSq"`]. 
+
+
+```r
+n <- 10000
+# PDF
+chisqs <- data.frame(df1 = rchisq(n, df = 1), df5 = rchisq(n, df = 5), df10 = rchisq(n, 
+    df = 10))
+ggplot(melt(chisqs), aes(x = value, fill = variable, color = variable)) + geom_density(alpha = 1/3) + 
+    ylim(0, 0.25)
+```
+
+```
+## Using as id variables
+```
+
+![plot of chunk chisq](figure/chisq.png) 
+
+#### Applications
+* Goodness-of-fit tests: The chi-square test for contingency tables measures error from a model of frequency distibutions.
+* Likelihood-ratio tests are chi-square distributed.
+* Model fitting: The model that minimizes the chi-square statistic for the model is the least-square estimator. 
+
+### The F distribution
+The F distribution is the ratio of two Chi-square statistics, so F distributions are useful for comparing two models. When testing whether something is a significant predictor in a linear regression, the test statistic is F distributed (because you're comparing whether one model has significantly less error than the other). The F statistic takes two degrees of freedom: one from each Chi-Square statistic. 
+#### Shorcuts
+* An F distribution with 1 and _k_ degrees of freedom is _t_ distributed with _k_ degrees of freedom.
+

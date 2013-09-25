@@ -1,0 +1,204 @@
+ggplot2
+========================================================
+
+Hadley Wickham. "A Layered Grammar of Graphics". Journal of Computational and Graphical Statistics Vol. 19, Iss. 1, 2010 http://vita.had.co.nz/papers/layered-grammar.pdf
+
+
+```{r}
+library(ggplot2)
+# Some sample data
+set.seed(1234)
+df <- data.frame(cond = factor( rep(c("A","B"), each=200) ), 
+                   rating = c(rnorm(200),rnorm(200, mean=.8)))
+
+# Load some datasets
+
+#US economic time series
+data(economics)
+head(economics)
+# Fisher's iris dataset
+data(iris)
+head(iris)
+# Data on 50k+ diamonds
+data(diamonds)
+head(diamonds)
+```
+
+Lets face it: the base R graphics are really ugly. Lets look at this scatterplot of diamond price versus carat.
+```{r fig.width=7,fig.height=6}
+plot(diamonds$price~diamonds$carat)
+```
+Kind of gross, huh? Lets compare it to the equivalent graphic created by ggplot2:
+```{r fig.width=7, fig.height=6}
+ggplot(diamonds,aes(x=carat,y=price)) + geom_point() 
+```
+Thats a bit better, but more to write. We'll talk about a shorter syntax called **qplot** at the end. 
+
+Plots in ggplot2 are made up of a couple different things. 
+Aesthetics
+-------------------------
+
+Aesthetics map variables in the dataframe you want to plot to parts of the graph. For this you use the __aes()__ function. Aesthetics are usually set in the layer, but can be set in the geom to override layer settings. There are several aesthetics you can map to. In the scatterplot above you can see we've mapped x to the carat of the observation and y to the price. But if you wanted to add more information, you can change the color based on a variable, or change the shape based on a variable. Here's a higher-information graph:
+
+```{r fig.width=7,fig.height=6}
+ggplot(diamonds,aes(x=carat,y=price,color=color,shape=cut)) + geom_point()
+```
+
+Some aesthetics can be difficult to differentiate, especially for categorical variables. For example, making a scatter plot with shape mapped to a factor with more than 6 categories wont work. Another problem for high categrory discrete variables is the color aesthetic. For, say, a variable with 22 categories, it becomes difficult to tell value 11 from 12, and ends up looking like a big rainbow. 
+
+Just because you can do something, doesnt mean you necessarily should. Graphs with too much information can become overwhelming and difficult to interpret. I like to stay around three variables for clarity's sake. 
+
+Geoms
+-------------------------
+
+Geoms are the actual graphs that you make (e.g. scatterplot, line graph, etc). These are added to the graph with the plus symbol. Geoms only understand certain aesthetics: it wouldnt make much sense to map a variable to y in a histogram, for example. Geoms can be combined in a graph, which is useful for plotting the actual observation on a line graph, or drawing a regression line on a graph.  
+
+### Histograms
+**geom_hist()** _will_ complain about not setting the width of the bins. It picks the range of the x variable divided by 30 as a default but you should set it yourself anyway.
+
+```{r fig.width=7,fig.height=6}
+ggplot(diamonds,aes(x=carat)) + geom_histogram()
+ggplot(diamonds,aes(x=carat)) + geom_histogram(binwidth=.1)
+```
+### Density
+Density is a useful alternative to the histogram, and doesnt rely on binsizes which can alter the appearance of the distribution. 
+```{r fig.width=7,fig.height=6}
+ggplot(diamonds,aes(x=carat)) + geom_density()
+```
+### Boxplots
+Boxplots are the histograms less informative cousin, available through __geom_boxplot__.
+```{r fig.width=7,fig.height=7}
+ggplot(df, aes(x=cond, y=rating, fill=cond)) + geom_boxplot()
+```
+
+### Bar graphs 
+Bar graphs are available via **geom_bar**. They default to counting the values in the x axis (**stat_bin**).
+```{r fig.width=7,fig.height=7}
+ggplot(diamonds,aes(x=cut)) + geom_bar()
+```
+
+If you have the y axis in the dataset you can tell **geom_bar** to use that by mapping a variable to the y aesthetic and then using **stat_identity**.
+```{r fig.width=7,fig.height=7}
+tips <-  data.frame(time = factor(c("Lunch","Dinner"), levels=c("Lunch","Dinner")), total_bill = c(6.89, 17.23))
+ggplot(tips,aes(x=time,y=total_bill)) + geom_bar(stat='identity')
+```
+
+### Line graphs
+
+Line graphs connect values over the x-axis, and are made with __geom_line()__. This geom accepts several useful aesthetics, including size (which controls the line width), color, and group. 
+
+```{r fig.width=7,fig.height=3}
+ggplot(economics,aes(x=date,y=unemploy/pop)) + geom_line()
+```
+
+The group aesthetic can be used to draw different lines per variable. But grouping will occur automatically on lines if you assign the grouping variable an aesthetic.
+
+```{r fig.width=7,fig.height=7}
+data(Orange)
+head(Orange)
+ggplot(Orange,aes(x=age,y=circumference,color=Tree)) + geom_line() + geom_point(alpha=.4)
+```
+
+### Smoothing/Fit lines
+
+ggplot2 can add useful things like regression lines or smoothing lines using **geom_smooth**. It's basic action is to add a local model fit using **loess**, which is something akin to a rolling average. The gray bands of represent the standard error of the fit, which can be turned off and on with the boolean flag, **se**.  
+
+```{r fig.width=7,fig.height=3}
+ggplot(economics,aes(x=date,y=unemploy/pop)) + geom_line() + geom_smooth()
+```
+
+```{r fig.width=7,fig.height=7}
+ggplot(iris,aes(x=Sepal.Width,y=Sepal.Length)) + geom_point() + geom_smooth(method=lm)
+```
+
+If you are grouping on an aesthetic that you mapped to a factor or ordered variable, **geom_smooth** will split the smoother apart: 
+
+```{r fig.width=7,fig.height=7}
+ggplot(iris,aes(x=Sepal.Width,y=Sepal.Length,color=Species))  + geom_point() + geom_smooth(method=lm)
+```
+
+### Arbitrary lines
+
+ggplot will let you place arbitrary lines onto a graph. **geom_hline**, **geom_vline**, and **geom_abline** let you add horizontal, vertical, and arbitrary lines to a plot.
+```{r fig.width=7,fig.height=7}
+ggplot(iris,aes(x=Sepal.Width,y=Sepal.Length,color=Species)) + geom_point() + geom_hline(yintercept=5.1) + geom_vline(xintercept=4) + geom_abline(intercept=4.5,slope=.5)
+```
+Coordinates
+-------------------------
+
+### Axes
+Axis labels can be set with **xlab** and **ylab**. The axis ranges of graphs can be controlled by the shortcuts **xlim** and **ylim**. For example xlim(0,5) bounds the x-axis between 0 and 5. Compare: 
+
+```{r fig.width=7, fig.height=6}
+ggplot(diamonds,aes(x=carat,y=price)) + geom_point() 
+ggplot(diamonds,aes(x=carat,y=price)) + geom_point() + xlim(1,2) + ylim(5000,10000) + xlab('weight of diamond') + ylab('price of diamond')
+```
+
+coord_flip inverts axes:
+
+```{r fig.width=7, fig.height=6}
+ggplot(iris,aes(x=Sepal.Width,y=Sepal.Length,color=Species)) + geom_point() + geom_smooth(method=lm,se=F)
+ggplot(iris,aes(x=Sepal.Width,y=Sepal.Length,color=Species)) + geom_point() + geom_smooth(method=lm,se=F) + coord_flip()
+```
+
+### Polar coordinates
+You can add **coord_polar()** to your plot to make it plot using polar coordinates instead of Cartesian. This is usually more difficult to interpret than Cartesian and frankly kind of goofy looking so you should probably have a good reason for doing this.
+```{r fig.width=7,fig.height=7}
+ggplot(economics,aes(x=date,y=unemploy/pop)) + geom_line()
+ggplot(iris,aes(x=Sepal.Width,y=Sepal.Length,color=Species)) + geom_point()  + geom_smooth(method=lm) + coord_polar()
+```
+
+Positioning and Overplotting 
+-------------------------
+Instead of making two separate plots you can combine them using position adjustments to the geom. These get ugly for more than two or three groups. 
+```{r}
+# Keep the columns where they would be and just make the histograms a little more transparent.
+ggplot(df, aes(x=rating, fill=cond)) + geom_histogram(binwidth=.5, alpha=.5, position="identity")
+
+# Dodge the columns
+ggplot(df, aes(x=rating, fill=cond)) + geom_histogram(binwidth=.5, alpha=.5, position="dodge")
+```
+
+Faceting
+-------------------------
+Faceting is probably my favorite feature of ggplot2. Facetting allows you to make subplots based on one (or two variables). facet functions will take an arugment that looks like an equation: `r y~x`. Putting a variable in the x position of the equation will facet the graph across that axis.  **facet_grid** will lay them out in a grid for you:
+```{r fig.width=7,fig.height=7}
+ggplot(diamonds,aes(x=carat)) + geom_histogram(binwidth=.1) + facet_grid(cut~.)
+ggplot(diamonds,aes(x=carat)) + geom_histogram(binwidth=.1) + facet_grid(.~cut)
+ggplot(diamonds,aes(x=carat)) + geom_histogram(binwidth=.1) + facet_grid(cut~color)
+```
+
+Facetting works for any type of plot. 
+```{r fig.width=7,fig.height=7}
+ggplot(diamonds,aes(x=carat,y=price,color=cut)) + geom_point() + facet_grid(color~.)
+```
+Themeing
+-------------------------
+Many parts of the layout of the plot such as fonts, positioning, etc can be adjusted with the **theme** function. A useful thing to add to your chart is **theme_bw**, which gets rid of the background, and makes your chart look a bit more presentable. Labels can alternately be set with **labs**.
+```{r fig.height=7, fig.width=7}
+ggplot(iris,aes(x=Sepal.Width,y=Sepal.Length,color=Species)) + geom_point() + geom_smooth(method=lm,se=F) + theme_bw() + theme(legend.position='bottom') + labs(x='Sepal Width', y='Sepal Length', title='Morphologic Variation in 3 Species of Iris')  
+```
+There are a lot of options you can give to **theme** but they're straightforward and I dont feel like going over them. 
+
+Programatically creating plots
+-------------------------
+One of the nice things about ggplot graphics is that the plots themselves are objects. So you can create them on the fly in programs. 
+```{r}
+plot <- ggplot(diamonds,aes(x=carat,y=price,color=cut)) 
+if (nrow(diamonds) > 5000) {
+  # If there are a ton of datapoints, make them transparent so that you can see more of them
+  plot <- plot + geom_point(alpha=.5)
+} else {
+  plot <- plot + geom_point()
+}
+plot
+```
+
+qplot
+-------------------------
+Plotting things in ggplot can be verbose. That's why **qplot** is included in ggplot2. It's intended to be used similarly to R's plot function, for common plots. If you supply one axis, **qplot** defaults to a histogram. If you supply two, it goes for a scatter plot. You can add more aesthetics with a keyword arguement. You can also add more geoms like a ggplot object
+
+```{r fig.width=7, fig.height=7}
+qplot(Sepal.Length,data=iris)
+qplot(Sepal.Width,Sepal.Length,data=iris,color=Species)
+qplot(Sepal.Width,Sepal.Length,data=iris,color=Species) + geom_smooth(method=lm,se=F)
