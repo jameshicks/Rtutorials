@@ -6,6 +6,7 @@ What is R?
 #### R is a programming language
 #### R is Open Source
 #### R is free
+#### R is multiplatform
 
 What does R do?
 -----
@@ -39,7 +40,7 @@ You can see what type a variable has with `typeof` or `str` (short for 'structur
 
 #### Scalars
 #### Vectors
-Vectors can be thought of as a collection of scalar variables, and can be created with the function `c`
+Vectors can be thought of as a collection of scalar variables, and can be created with the function `c`.
 ### Functions
 ### Data frames
 The function `str` is a useful way to get the structure of a dataframe: 
@@ -49,6 +50,7 @@ str(iris)
 ```
 #### Subsetting Dataframes
 ### Reading data
+#### The working directory
 ### Saving data
 ### Installing new packages
 
