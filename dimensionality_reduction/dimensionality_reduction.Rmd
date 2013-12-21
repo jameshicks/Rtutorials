@@ -1,0 +1,152 @@
+Dimensionality Reduction
+========================================================
+
+```{r}
+library(ggplot2)
+```
+
+Principal Component Analysis
+-----
+
+### What is PCA?
+Preparations:
+* Data must be all be continuous. (The variance of the vector {A,B,C} can't be calculated.)
+** Note that in PCA of GWAS data, the genotypes are coded as number of minor alleles (i.e. 0,1,2)
+* Data must be centered (i.e. subtract the mean from each variable so that they have mean 0)
+* Data must be scaled so that they have the same variance. Because PCA works by finding directions of maximum variance, allowing variables to have different variances can produce biased results. __Note__: The built-in R functions for PCA, `prcomp` and `princomp` __do not__ scale by default. `prcomp` will scale with the option `scale=TRUE`. You shouldn't be using `princomp` at all. 
+
+### Performing PCA
+R has many options for performing PCA, including the builtin functions `prcomp` and `princomp`. However, these are old and crufty, and can require you to know what you're doing to get correct results. Infact, `princomp` calculates PCA by performing eigenvalue decomposition on a correlation matrix and can introduce rounding errors into the results. The R help page for `princomp` suggests not using it at all. (`prcomp` uses the more-modern approach of performing singular-value decomposition on the data matrix itself, which avoids that issue entirely).
+I prefer an easy to use package, `FactoMineR` for PCA, and will be using it here. The package also includes factor analysis and other related techniques not discussed here (like correspondence analysis).
+
+```{r loaddata}
+library(FactoMineR)
+data(swiss)
+```
+```{r swissPCA}
+# Perform PCA
+sw.pca <- PCA(swiss)
+print(sw.pca)
+```
+### Interpreting PCA
+#### Eigenvalues
+#### PC Scores
+#### Loadings
+#### How many components should I use?
+No rigorous way to choose:
+* __Kaiser rule__: Only keep PCs with eigenvalues over 1.
+* __Screeplot__: Plot the eigenvalues of PCs in order and look for an elbow (where the line bends into a flat plane, indicating random noise)
+```{r}
+# A function to make a prettier screeplot than you'd get with default graphics
+fmscree <- function(PCAobj) {
+  df <- as.data.frame(PCAobj$eig)
+  df$component <- seq(1,nrow(df))
+  plot <- ggplot(df,aes(x=component,y=eigenvalue)) + geom_point(size=3) + geom_line()
+  plot <- plot + geom_hline(yintercept=1,color='red',lty='dotted') 
+  print(plot)
+  }
+```
+### Examples
+#### Comparing cars by their specs.
+The `mtcars` dataset has specs and performance for 32 cars from an issue of Motor Trend from 1972. We're going to use 9 of the predictors (skipping two categorical ones). When we look at the correlations, we see theres a good amount of 
+```{r}
+data(mtcars)
+symnum(cor(mtcars[,-c(8,9)]))
+```
+Let's see what comes up in the PCA
+```{r mtcarspca}
+mtcars.pca <- PCA(mtcars[,-c(8,9)],graph=F)
+summary(mtcars.pca)
+# Make a screeplot to visualize the eigenvalues
+fmscree(mtcars.pca)
+```
+Looking at the Scree plot, its clear that there are only two major principal components, accounting for 85% of the total variance in the dataset. What do they represent?
+```{r}
+# choix tells whether to plot individual PC scores or PC loadings for variables
+plot(mtcars.pca,choix='ind')
+```
+Just by eyeballing it, you can see that PC1 (accounting for ~63% of the variance in the dataset) measures the 'fanciness' of the car, as well as it can by specs and performance. In the negative direction you have economy cars, like Hondas and Fiats, as well as a few higher end models which have lower specification. On the other end you have higher end luxury cars: Maseratis, Chryslers, Cadillacs, etc. 
+
+
+Principal component 2 seems to separate cars based on performance. The Ferrari, Maserati, and the Pantera (a sports car) all have high scores on this PC. On the other hand, you have cars like the Toyota Corona, the Hornet, and especially the Valiant are very poorly performing cars. 
+
+```{r}
+plot(mtcars.pca,choix='var')
+```
+This plot shows the relationship of the *variables* to the two principal components. Cars that get better mileage are usually economy cars, and mpg shows that. A larger value for mpg results in a lower score on PC1 (the fancy car PC). On the other hand, fancier cars usually have bigger engines, and larger numbers of cylinders, increased displacement, and weight all results in a higher score on PC1. 
+
+Cars that perform poorly on the quarter mile get lower scores on PC2. These are also typically the lower spec'ed cars, so increased values of qsec result in lower scores also get you a lower score on PC1. The opposite is true for number of carbs and horsepower. 
+#### Outlier detection: The Florida 2000 election.
+It can be hard to identify outliers in high dimensional spaces, where there are so many things going on. A great place to look for weird things happening is the 2000  Florida election, where weird things did happen. The dataset `Florida` in package `car` has vote counts for each florida county, for 10 presidential candidates. What happens when you look at the vote counts with PCA.  
+```{r}
+data(Florida, package='car')
+fl.pca <- PCA(Florida[1:10], graph=F)
+plot(fl.pca,choix='ind')
+```
+Lets look at the first two PCs. So theres an expected group around 0,0. And you can see the large population counties (Dade, Hillsborough, etc) off a little farther. They're going to separate out in any analysis not normalized by population size because their populations are so much larger than the other counties. But the real star of this plot is Volusia county, which is far, far away on PC2 from the rest of the counties. 
+```{r}
+plot(fl.pca,choix='var')
+```
+When we look at the variable plot, we see that high scores on PC2 are driven by voting for some people I've never heard of (Harris, Phillips, Browne). So that's a big hint that somethings up. Lets compare Volusia to two (geographically) nearby counties, Flagler and Seminole. 
+
+```{r}
+Florida[c('SEMINOLE','FLAGLER','VOLUSIA'),]
+```
+So it looks like the variable causing the issue is too many people voting for Harris than you might expect. For comparison, the median number of votes for Harris per county was `r median(Florida$HARRIS)`.
+
+In 2000, Volusia county's computers had an error that (among other things) gave 9888 erroneous votes to James Harris, the Socialist Workers Party candidate for president. [Here's a New York Times article on it](http://www.nytimes.com/2000/11/10/us/2000-campaign-florida-vote-democrats-tell-problems-polls-across-florida.html?pagewanted=all&src=pm)
+#### Crabs: reducing many size measurements into a one dimensional feature space
+The `crabs` dataset is a catalog of measurements of 8 variables on 200 crabs. We're concerned right now with continuous variables, frontal lobe size (FL), rear width (RW), carapace length (CL), carapace width (CW), and body depth (BD). But species (O and M) and sex are available.
+
+```{r loadcrabs}
+data(crabs,package='MASS')
+head(crabs)
+# These are our variables of interest
+sizevars <- 4:8
+```
+
+Just by looking at the correlations between these variables it's pretty clear what's going on: all the measurements are strongly correlated with each other. Looking at the screeplot confirms it: There is only one principal component for all the size data. 
+```{r corcrabs}
+round(cor(crabs[sizevars]),2)
+plot(crabs[sizevars])
+```
+Lets do the PCA anyway and take a look around:
+```{r pcacrabs}
+c.pca <- PCA(crabs[sizevars], graph=F)
+summary(c.pca)
+```
+
+As we expected, one principal component accounts for 95% of the variance in the data. We've effectively reduced the 5 size dimensions down to one, while losing very little of the information in the original dataset. By bringing sex and species back into the picture, we can see that O species crabs are significantly 'bigger': that is, they have a higher score on PC1 than species B.  
+```{r}
+c <- crabs
+c$PC1 <- c.pca$ind$coord[,1]
+ggplot(c,aes(x=PC1,fill=sp)) + geom_density() + facet_grid(sp~sex)
+```
+#### You can get prinicpal components out of nothing.
+Principal components can always be found. That doesn't necessarily mean they mean something. Here's some randomly generated data: 200 'observations' of 5 variables, all random normal variates. 
+```{r}
+summary(PCA(matrix(rnorm(1000),ncol=5)))
+```
+### Special cases and related concepts
+* Sparse PCA
+* Principal component regression
+* Partial least squares
+
+Factor Analysis
+-----
+### What is factor analysis
+### Difference between EFA and PCA
+
+
+Independent Component Analysis
+-----
+
+Multidimensional Scaling
+-----
+
+Nonnegative Matrix Factorization
+-----
+
+Kernel Methods
+-----
+### What is a kernel?
