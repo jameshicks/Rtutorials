@@ -315,14 +315,6 @@ plot(crabs[sizevars])
 
 ![plot of chunk corcrabs](figure/corcrabs.png) 
 
-```r
-scree(crabs[sizevars])
-```
-
-```
-## Error: could not find function "scree"
-```
-
 Lets do the PCA anyway and take a look around:
 
 ```r
@@ -390,32 +382,54 @@ ggplot(c, aes(x = PC1, fill = sp)) + geom_density() + facet_grid(sp ~ sex)
 Principal components can always be found. That doesn't necessarily mean they mean something. Here's some randomly generated data: 200 'observations' of 5 variables, all random normal variates. 
 
 ```r
-PCA(matrix(rnorm(1000), ncol = 5))
+summary(PCA(matrix(rnorm(1000), ncol = 5)))
 ```
 
 ![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-101.png) ![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-102.png) 
 
 ```
-## **Results for the Principal Component Analysis (PCA)**
-## The analysis was performed on 200 individuals, described by 5 variables
-## *The results are available in the following objects:
 ## 
-##    name               description                          
-## 1  "$eig"             "eigenvalues"                        
-## 2  "$var"             "results for the variables"          
-## 3  "$var$coord"       "coord. for the variables"           
-## 4  "$var$cor"         "correlations variables - dimensions"
-## 5  "$var$cos2"        "cos2 for the variables"             
-## 6  "$var$contrib"     "contributions of the variables"     
-## 7  "$ind"             "results for the individuals"        
-## 8  "$ind$coord"       "coord. for the individuals"         
-## 9  "$ind$cos2"        "cos2 for the individuals"           
-## 10 "$ind$contrib"     "contributions of the individuals"   
-## 11 "$call"            "summary statistics"                 
-## 12 "$call$centre"     "mean of the variables"              
-## 13 "$call$ecart.type" "standard error of the variables"    
-## 14 "$call$row.w"      "weights for the individuals"        
-## 15 "$call$col.w"      "weights for the variables"
+## Call:
+## knit("dimensionality_reduction.Rmd", encoding = "UTF-8") 
+## 
+## 
+## Eigenvalues
+##                        Dim.1   Dim.2   Dim.3   Dim.4   Dim.5
+## Variance               1.250   1.099   1.030   0.891   0.731
+## % of var.             25.003  21.979  20.591  17.812  14.616
+## Cumulative % of var.  25.003  46.981  67.572  85.384 100.000
+## 
+## Individuals (the 10 first)
+##        Dist    Dim.1    ctr   cos2    Dim.2    ctr   cos2    Dim.3    ctr
+## 1  |  2.050 | -0.220  0.019  0.011 |  1.555  1.100  0.575 | -1.063  0.548
+## 2  |  1.491 |  1.100  0.484  0.544 |  0.558  0.142  0.140 |  0.385  0.072
+## 3  |  3.029 |  0.049  0.001  0.000 | -1.532  1.068  0.256 |  2.131  2.206
+## 4  |  3.819 |  1.685  1.135  0.195 |  1.020  0.473  0.071 | -2.009  1.960
+## 5  |  1.420 |  0.247  0.024  0.030 | -0.344  0.054  0.059 | -0.750  0.273
+## 6  |  1.950 |  0.458  0.084  0.055 |  0.678  0.209  0.121 |  1.758  1.502
+## 7  |  1.757 |  1.190  0.566  0.459 |  0.599  0.163  0.116 |  0.713  0.247
+## 8  |  1.849 |  0.050  0.001  0.001 | -0.829  0.312  0.201 |  1.180  0.676
+## 9  |  2.970 | -1.708  1.166  0.331 |  1.335  0.811  0.202 |  0.268  0.035
+## 10 |  3.288 | -1.781  1.269  0.294 | -0.394  0.071  0.014 |  0.202  0.020
+##      cos2  
+## 1   0.269 |
+## 2   0.067 |
+## 3   0.495 |
+## 4   0.277 |
+## 5   0.279 |
+## 6   0.813 |
+## 7   0.165 |
+## 8   0.407 |
+## 9   0.008 |
+## 10  0.004 |
+## 
+## Variables
+##       Dim.1    ctr   cos2    Dim.2    ctr   cos2    Dim.3    ctr   cos2  
+## V1 |  0.006  0.003  0.000 |  0.809 59.568  0.655 |  0.343 11.401  0.117 |
+## V2 |  0.744 44.326  0.554 | -0.111  1.126  0.012 | -0.218  4.610  0.047 |
+## V3 |  0.421 14.172  0.177 | -0.491 21.942  0.241 |  0.313  9.506  0.098 |
+## V4 |  0.720 41.478  0.519 |  0.399 14.492  0.159 |  0.019  0.036  0.000 |
+## V5 |  0.016  0.022  0.000 | -0.178  2.872  0.032 |  0.875 74.447  0.766 |
 ```
 
 ### Special cases and related concepts
@@ -431,6 +445,10 @@ Factor Analysis
 
 Independent Component Analysis
 -----
+
+```r
+library(fastICA)
+```
 
 Multidimensional Scaling
 -----

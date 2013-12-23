@@ -7,7 +7,6 @@ library(ggplot2)
 
 Principal Component Analysis
 -----
-
 ### What is PCA?
 Preparations:
 * Data must be all be continuous. (The variance of the vector {A,B,C} can't be calculated.)
@@ -30,8 +29,11 @@ print(sw.pca)
 ```
 ### Interpreting PCA
 #### Eigenvalues
-#### PC Scores
+The __eigenvalue__ of a principal component is the amount of variance explained by that component. These are in order, so the first eigenvalue will be the largest and so on. 
 #### Loadings
+The __loadings__ describe the relationships of the _variable_ to each of the components. A positive value for a loading indicates that an increased value for that variable results in an increased value for that PC. 
+#### PC Scores
+The __PC score__ describes where on the PC an _observation_ is.
 #### How many components should I use?
 No rigorous way to choose:
 * __Kaiser rule__: Only keep PCs with eigenvalues over 1.
@@ -140,7 +142,9 @@ Factor Analysis
 
 Independent Component Analysis
 -----
-
+```{r}
+library(fastICA)
+```
 Multidimensional Scaling
 -----
 
