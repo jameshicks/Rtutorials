@@ -1,28 +1,9 @@
-Dimensionality Reduction
+Dimensionality Reduction with PCA
 ========================================================
 
 
 ```r
 library(ggplot2)
-```
-
-
-Principal Component Analysis
------
-
-### What is PCA?
-Preparations:
-* Data must be all be continuous. (The variance of the vector {A,B,C} can't be calculated.)
-** Note that in PCA of GWAS data, the genotypes are coded as number of minor alleles (i.e. 0,1,2)
-* Data must be centered (i.e. subtract the mean from each variable so that they have mean 0)
-* Data must be scaled so that they have the same variance. Because PCA works by finding directions of maximum variance, allowing variables to have different variances can produce biased results. __Note__: The built-in R functions for PCA, `prcomp` and `princomp` __do not__ scale by default. `prcomp` will scale with the option `scale=TRUE`. You shouldn't be using `princomp` at all. 
-
-### Performing PCA
-R has many options for performing PCA, including the builtin functions `prcomp` and `princomp`. However, these are old and crufty, and can require you to know what you're doing to get correct results. Infact, `princomp` calculates PCA by performing eigenvalue decomposition on a correlation matrix and can introduce rounding errors into the results. The R help page for `princomp` suggests not using it at all. (`prcomp` uses the more-modern approach of performing singular-value decomposition on the data matrix itself, which avoids that issue entirely).
-I prefer an easy to use package, `FactoMineR` for PCA, and will be using it here. The package also includes factor analysis and other related techniques not discussed here (like correspondence analysis).
-
-
-```r
 library(FactoMineR)
 ```
 
@@ -43,49 +24,65 @@ library(FactoMineR)
 ```
 
 ```r
-data(swiss)
+library(car)
 ```
+
+
+Principal Component Analysis
+-----
+### What is PCA?
+Preparations:
+* Data must be all be continuous. (The variance of the vector {A,B,C} can't be calculated.)
+** Note that in PCA of GWAS data, the genotypes are coded as number of minor alleles (i.e. 0,1,2)
+* Data must be centered (i.e. subtract the mean from each variable so that they have mean 0)
+* Data must be scaled so that they have the same variance. Because PCA works by finding directions of maximum variance, allowing variables to have different variances can produce biased results. __Note__: The built-in R functions for PCA, `prcomp` and `princomp` __do not__ scale by default. `prcomp` will scale with the option `scale=TRUE`. You shouldn't be using `princomp` at all. 
+
+### Performing PCA
+R has many options for performing PCA, including the builtin functions `prcomp` and `princomp`. However, these are old and crufty, and can require you to know what you're doing to get correct results. Infact, `princomp` calculates PCA by performing eigenvalue decomposition on a correlation matrix and can introduce rounding errors into the results. The R help page for `princomp` suggests not using it at all. (`prcomp` uses the more-modern approach of performing singular-value decomposition on the data matrix itself, which avoids that issue entirely).
+I prefer an easy to use package, `FactoMineR` for PCA, and will be using it here. The package also includes factor analysis and other related techniques not discussed here (like correspondence analysis).
 
 
 ```r
-# Perform PCA
-sw.pca <- PCA(swiss)
+library(FactoMineR)
+data(UScereal, package = "MASS")
 ```
 
-![plot of chunk swissPCA](figure/swissPCA1.png) ![plot of chunk swissPCA](figure/swissPCA2.png) 
+
 
 ```r
-print(sw.pca)
+# PCA can only be done on numeric variables
+numericcols <- sapply(UScereal, is.numeric)
+# Perform PCA, skip the plots for now
+cereal.pca <- PCA(UScereal[numericcols])
 ```
 
-```
-## **Results for the Principal Component Analysis (PCA)**
-## The analysis was performed on 47 individuals, described by 6 variables
-## *The results are available in the following objects:
-## 
-##    name               description                          
-## 1  "$eig"             "eigenvalues"                        
-## 2  "$var"             "results for the variables"          
-## 3  "$var$coord"       "coord. for the variables"           
-## 4  "$var$cor"         "correlations variables - dimensions"
-## 5  "$var$cos2"        "cos2 for the variables"             
-## 6  "$var$contrib"     "contributions of the variables"     
-## 7  "$ind"             "results for the individuals"        
-## 8  "$ind$coord"       "coord. for the individuals"         
-## 9  "$ind$cos2"        "cos2 for the individuals"           
-## 10 "$ind$contrib"     "contributions of the individuals"   
-## 11 "$call"            "summary statistics"                 
-## 12 "$call$centre"     "mean of the variables"              
-## 13 "$call$ecart.type" "standard error of the variables"    
-## 14 "$call$row.w"      "weights for the individuals"        
-## 15 "$call$col.w"      "weights for the variables"
-```
+![plot of chunk cerealPCA](figure/cerealPCA1.png) ![plot of chunk cerealPCA](figure/cerealPCA2.png) 
 
 ### Interpreting PCA
 #### Eigenvalues
-#### PC Scores
-#### Loadings
+The __eigenvalue__ of a principal component is the amount of variance explained by that component. These are in order, so the first eigenvalue will be the largest and so on. We can retrieve them from `cereal.pca$eig`.
+
+
+```r
+cereal.pca$eig
+```
+
+```
+##        eigenvalue percentage of variance cumulative percentage of variance
+## comp 1   4.507994               50.08882                             50.09
+## comp 2   1.359057               15.10063                             65.19
+## comp 3   1.194672               13.27413                             78.46
+## comp 4   0.738865                8.20961                             86.67
+## comp 5   0.593874                6.59860                             93.27
+## comp 6   0.468633                5.20704                             98.48
+## comp 7   0.101423                1.12692                             99.61
+## comp 8   0.028421                0.31579                             99.92
+## comp 9   0.007062                0.07847                            100.00
+```
+
+As we can see, we've gotten 9 PCs from the data, ordered by the amount of variance explained by the component. The first accounts for 50.0888% of the variance in the data. The first three PCs account for 78.4636% of the data. All of the PCs explain all of the variance in the data.
 #### How many components should I use?
+The eigenvalues of the PCs tell us how many it is useful to retain or examine. But there's not a really good way to objectively get it. 
 No rigorous way to choose:
 * __Kaiser rule__: Only keep PCs with eigenvalues over 1.
 * __Screeplot__: Plot the eigenvalues of PCs in order and look for an elbow (where the line bends into a flat plane, indicating random noise)
@@ -103,9 +100,224 @@ fmscree <- function(PCAobj) {
 }
 ```
 
-### Examples
+
+```r
+fmscree(cereal.pca)
+```
+
+![plot of chunk screereal](figure/screereal.png) 
+
+#### Loadings
+The __loadings__ describe the relationships of the _variable_ to each of the components. A positive value for a loading indicates that an increased value for that variable results in an increased value for that PC. Variable level information is available in `cereal.pca$var`. The loadings themselves are in `cereal.pca$var$coord`.
+
+```r
+cereal.pca$var$coord
+```
+
+```
+##            Dim.1   Dim.2    Dim.3     Dim.4     Dim.5
+## calories  0.8435  0.4190 -0.27970 -0.056451  0.008425
+## protein   0.9106 -0.2351 -0.08269 -0.013654 -0.152761
+## fat       0.5610  0.5195  0.21762 -0.090330 -0.541080
+## sodium    0.6960 -0.1273 -0.16472 -0.360982  0.337697
+## fibre     0.7809 -0.5359  0.24877 -0.001072 -0.066369
+## carbo     0.5860  0.1571 -0.76765  0.098056  0.038199
+## sugars    0.4144  0.5722  0.52017 -0.227678  0.342911
+## shelf     0.5648  0.1765  0.19356  0.731655  0.198482
+## potassium 0.8510 -0.4144  0.27550 -0.015867 -0.028513
+```
+
+FactoMineR has a convenient way of plotting loadings, by calling `plot` on PCA objects.
+
+```r
+# choix chooses between individuals and variables.  Its 'choix' because the
+# FactoMineR people are French.
+plot(cereal.pca, choix = "var")
+```
+
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
+
+When you look at the plot you can already see a divide between sugary cereals (higher scores on PC2) vs fibery cereals (lower scores on PC2), but its hard to say anything about PC1, since all of the loadings are positive.
+#### Contributions
+Related to the loadings, the __contributions__ describe how much of a PC is due to a variable. These are available in `cereal.pca$var$contrib`. 
+
+```r
+round(cereal.pca$var$contrib, 2)
+```
+
+```
+##           Dim.1 Dim.2 Dim.3 Dim.4 Dim.5
+## calories  15.78 12.92  6.55  0.43  0.01
+## protein   18.39  4.07  0.57  0.03  3.93
+## fat        6.98 19.86  3.96  1.10 49.30
+## sodium    10.75  1.19  2.27 17.64 19.20
+## fibre     13.53 21.13  5.18  0.00  0.74
+## carbo      7.62  1.82 49.33  1.30  0.25
+## sugars     3.81 24.09 22.65  7.02 19.80
+## shelf      7.08  2.29  3.14 72.45  6.63
+## potassium 16.06 12.63  6.35  0.03  0.14
+```
+
+These are percents, and every column sums to 100%. If we look at PC1, we see that it's driven by protein, potassium, and calories mostly. Sugars and fat don't really enter into it. PC2, on the other hand is almost all sugars, calories, and fats. Be sure to check the loadings if you want a good understanding of what's going on with your PCs.
+#### PC Scores
+The __PC score__ describes where on the PC an _observation_ is. This is typically the most useful part of PCA, because it describes where your sample is in the reduced-dimension principal component space. Plotting them is the usual thing to do. If you have useful labels, use them in the plot.
+
+```r
+# You can plot, just like before with plot(cereal.pca,choix='ind') but the
+# labels get a little crowded so I'm going to use ggplot
+scoredf <- data.frame(PC1 = cereal.pca$ind$coord[, 1], PC2 = cereal.pca$ind$coord[, 
+    2], brand = rownames(UScereal))
+ggplot(scoredf, aes(x = PC1, y = PC2, label = brand)) + geom_point() + xlim(-5, 
+    10)
+```
+
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-41.png) 
+
+```r
+ggplot(scoredf, aes(x = PC1, y = PC2, label = brand)) + geom_text(size = 3, 
+    alpha = 0.75) + xlim(-5, 10)
+```
+
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-42.png) 
+
+
+With how long the labels are, the graph of the PCs is hard to read. Maybe we'll get some insight on PC1 by looking at the extremes of the distribution.
+
+```r
+summary(scoredf$PC1)
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##  -2.770  -1.460  -0.666   0.000   0.801   7.140
+```
+
+```r
+Q1 <- summary(scoredf$PC1)[["1st Qu."]]
+Q3 <- summary(scoredf$PC1)[["3rd Qu."]]
+# The low scorers
+subset(scoredf, PC1 < Q1, select = c(PC1, PC2))
+```
+
+```
+##                         PC1     PC2
+## Apple Jacks          -1.722  0.2416
+## Cocoa Puffs          -1.590  0.5019
+## Corn Chex            -1.730 -0.7413
+## Corn Flakes          -1.753 -1.0040
+## Corn Pops            -1.998  0.2303
+## Count Chocula        -1.567  0.4820
+## Froot Loops          -1.594  0.4294
+## Golden Crisp         -2.034  0.4493
+## Honey-comb           -2.671 -0.4217
+## Kix                  -2.210 -0.6659
+## Multi-Grain Cheerios -1.647 -0.6143
+## Puffed Rice          -2.767 -0.7922
+## Rice Chex            -2.257 -0.8058
+## Rice Krispies        -1.682 -0.7696
+## Trix                 -1.759  0.5265
+## Wheaties             -1.464 -1.0119
+```
+
+```r
+
+# The high scorers
+subset(scoredf, PC1 > Q3, select = c(PC1, PC2))
+```
+
+```
+##                                          PC1      PC2
+## 100% Bran                             5.9600 -2.58111
+## All-Bran                              7.1416 -3.08459
+## All-Bran with Extra Fiber             2.6422 -4.62435
+## Clusters                              2.0732  1.37038
+## Cracklin' Oat Bran                    2.6876  1.29875
+## Fruit & Fibre: Dates Walnuts and Oats 1.4667  0.51943
+## Fruitful Bran                         1.4513 -0.06441
+## Grape-Nuts                            6.9624  0.36009
+## Great Grains Pecan                    5.0824  2.88487
+## Mueslix Crispy Blend                  1.8938  1.72182
+## Nutri-Grain Almond-Raisin             1.7604  0.88614
+## Oatmeal Raisin Crisp                  2.7234  2.09258
+## Post Nat. Raisin Bran                 1.8195  0.25373
+## Quaker Oat Squares                    1.9441  0.40633
+## Raisin Bran                           0.8451 -0.10079
+## Raisin Nut Bran                       2.0654  1.12906
+```
+
+Interpreting PCs is always subjective, but looking at this I think it's clear that PC1 is separating kid's cereal (Fruit Loops, Count Chocula) from grown up cereal (All the bran cereals). An equally valid interpretation is that PC1 is separating candy cereals from healthy cereals.
+
+What about PC2?
+
+```r
+summary(scoredf$PC2)
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##  -4.620  -0.666   0.224   0.000   0.574   2.880
+```
+
+```r
+Q1 <- summary(scoredf$PC2)[["1st Qu."]]
+Q3 <- summary(scoredf$PC2)[["3rd Qu."]]
+# The low scorers
+subset(scoredf, PC2 < Q1, select = c(PC1, PC2))
+```
+
+```
+##                                PC1     PC2
+## 100% Bran                  5.96001 -2.5811
+## All-Bran                   7.14164 -3.0846
+## All-Bran with Extra Fiber  2.64216 -4.6244
+## Bran Flakes                0.64965 -1.1962
+## Cheerios                  -1.39716 -1.1670
+## Corn Chex                 -1.73009 -0.7413
+## Corn Flakes               -1.75266 -1.0040
+## Product 19                -0.85156 -0.6939
+## Puffed Rice               -2.76741 -0.7922
+## Rice Chex                 -2.25670 -0.8058
+## Rice Krispies             -1.68239 -0.7696
+## Shredded Wheat 'n'Bran    -0.99629 -1.5235
+## Shredded Wheat spoon size -1.10435 -1.3276
+## Special K                 -1.27171 -1.2382
+## Wheat Chex                 0.08802 -0.8006
+## Wheaties                  -1.46383 -1.0119
+```
+
+```r
+
+# The high scorers
+subset(scoredf, PC2 > Q3, select = c(PC1, PC2))
+```
+
+```
+##                               PC1    PC2
+## Apple Cinnamon Cheerios   -0.6964 0.6418
+## Basic 4                    0.8008 0.8282
+## Cap'n'Crunch              -0.4447 1.4604
+## Cinnamon Toast Crunch     -0.3240 1.4909
+## Clusters                   2.0732 1.3704
+## Cracklin' Oat Bran         2.6876 1.2988
+## Fruity Pebbles            -1.0184 1.1628
+## Golden Grahams            -0.5170 0.6507
+## Great Grains Pecan         5.0824 2.8849
+## Just Right Fruit & Nut     0.6535 0.7561
+## Mueslix Crispy Blend       1.8938 1.7218
+## Nut&Honey Crunch          -0.1140 0.9913
+## Nutri-Grain Almond-Raisin  1.7604 0.8861
+## Oatmeal Raisin Crisp       2.7234 2.0926
+## Raisin Nut Bran            2.0654 1.1291
+## Smacks                    -0.9345 1.2464
+```
+
+This one is not as clear as the others, but by looking at this in combination with the loadings for PC2 from the previous section, we can say that that PC2 is separating sugary cereals and fibery cereals.
+
+You can keep digging through for more information from additional PCs, but I couldn't pick out a good pattern from the loadings for PC3 (lower for increased calories but higher for increased sugar?), and since it already has a low eigenvalue (1.1947), I'll call the rest of the variation noise. 
+
+### More Examples
 #### Comparing cars by their specs.
-The `mtcars` dataset has specs and performance for 32 cars from an issue of Motor Trend from 1972. We're going to use 9 of the predictors (skipping two categorical ones). When we look at the correlations, we see theres a good amount of 
+The `mtcars` dataset has specs and performance for 32 cars from an issue of Motor Trend from 1972. We're going to use 9 of the predictors (skipping two categorical ones). When we look at the correlations, we see there's a good amount of 
 
 ```r
 data(mtcars)
@@ -212,7 +424,7 @@ Looking at the Scree plot, its clear that there are only two major principal com
 plot(mtcars.pca, choix = "ind")
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4.png) 
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6.png) 
 
 Just by eyeballing it, you can see that PC1 (accounting for ~63% of the variance in the dataset) measures the 'fanciness' of the car, as well as it can by specs and performance. In the negative direction you have economy cars, like Hondas and Fiats, as well as a few higher end models which have lower specification. On the other end you have higher end luxury cars: Maseratis, Chryslers, Cadillacs, etc. 
 
@@ -224,7 +436,7 @@ Principal component 2 seems to separate cars based on performance. The Ferrari, 
 plot(mtcars.pca, choix = "var")
 ```
 
-![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5.png) 
+![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
 
 This plot shows the relationship of the *variables* to the two principal components. Cars that get better mileage are usually economy cars, and mpg shows that. A larger value for mpg results in a lower score on PC1 (the fancy car PC). On the other hand, fancier cars usually have bigger engines, and larger numbers of cylinders, increased displacement, and weight all results in a higher score on PC1. 
 
@@ -238,7 +450,7 @@ fl.pca <- PCA(Florida[1:10], graph = F)
 plot(fl.pca, choix = "ind")
 ```
 
-![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6.png) 
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
 
 Lets look at the first two PCs. So theres an expected group around 0,0. And you can see the large population counties (Dade, Hillsborough, etc) off a little farther. They're going to separate out in any analysis not normalized by population size because their populations are so much larger than the other counties. But the real star of this plot is Volusia county, which is far, far away on PC2 from the rest of the counties. 
 
@@ -246,7 +458,7 @@ Lets look at the first two PCs. So theres an expected group around 0,0. And you 
 plot(fl.pca, choix = "var")
 ```
 
-![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
 
 When we look at the variable plot, we see that high scores on PC2 are driven by voting for some people I've never heard of (Harris, Phillips, Browne). So that's a big hint that somethings up. Lets compare Volusia to two (geographically) nearby counties, Flagler and Seminole. 
 
@@ -376,7 +588,7 @@ c$PC1 <- c.pca$ind$coord[, 1]
 ggplot(c, aes(x = PC1, fill = sp)) + geom_density() + facet_grid(sp ~ sex)
 ```
 
-![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11.png) 
 
 #### You can get prinicpal components out of nothing.
 Principal components can always be found. That doesn't necessarily mean they mean something. Here's some randomly generated data: 200 'observations' of 5 variables, all random normal variates. 
@@ -385,7 +597,7 @@ Principal components can always be found. That doesn't necessarily mean they mea
 summary(PCA(matrix(rnorm(1000), ncol = 5)))
 ```
 
-![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-101.png) ![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-102.png) 
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-121.png) ![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-122.png) 
 
 ```
 ## 
@@ -395,41 +607,41 @@ summary(PCA(matrix(rnorm(1000), ncol = 5)))
 ## 
 ## Eigenvalues
 ##                        Dim.1   Dim.2   Dim.3   Dim.4   Dim.5
-## Variance               1.250   1.099   1.030   0.891   0.731
-## % of var.             25.003  21.979  20.591  17.812  14.616
-## Cumulative % of var.  25.003  46.981  67.572  85.384 100.000
+## Variance               1.209   1.096   0.994   0.941   0.760
+## % of var.             24.181  21.928  19.877  18.817  15.196
+## Cumulative % of var.  24.181  46.109  65.987  84.804 100.000
 ## 
 ## Individuals (the 10 first)
 ##        Dist    Dim.1    ctr   cos2    Dim.2    ctr   cos2    Dim.3    ctr
-## 1  |  2.050 | -0.220  0.019  0.011 |  1.555  1.100  0.575 | -1.063  0.548
-## 2  |  1.491 |  1.100  0.484  0.544 |  0.558  0.142  0.140 |  0.385  0.072
-## 3  |  3.029 |  0.049  0.001  0.000 | -1.532  1.068  0.256 |  2.131  2.206
-## 4  |  3.819 |  1.685  1.135  0.195 |  1.020  0.473  0.071 | -2.009  1.960
-## 5  |  1.420 |  0.247  0.024  0.030 | -0.344  0.054  0.059 | -0.750  0.273
-## 6  |  1.950 |  0.458  0.084  0.055 |  0.678  0.209  0.121 |  1.758  1.502
-## 7  |  1.757 |  1.190  0.566  0.459 |  0.599  0.163  0.116 |  0.713  0.247
-## 8  |  1.849 |  0.050  0.001  0.001 | -0.829  0.312  0.201 |  1.180  0.676
-## 9  |  2.970 | -1.708  1.166  0.331 |  1.335  0.811  0.202 |  0.268  0.035
-## 10 |  3.288 | -1.781  1.269  0.294 | -0.394  0.071  0.014 |  0.202  0.020
+## 1  |  2.409 |  0.289  0.035  0.014 | -1.765  1.421  0.537 |  0.958  0.462
+## 2  |  2.566 |  0.067  0.002  0.001 | -1.124  0.576  0.192 |  1.275  0.818
+## 3  |  2.191 |  0.502  0.104  0.053 | -0.867  0.343  0.157 | -1.173  0.692
+## 4  |  1.872 | -1.545  0.987  0.681 |  0.906  0.375  0.234 | -0.524  0.138
+## 5  |  3.146 |  1.510  0.943  0.230 |  1.281  0.748  0.166 |  1.220  0.749
+## 6  |  2.541 |  1.691  1.182  0.443 | -0.351  0.056  0.019 |  0.332  0.056
+## 7  |  2.644 | -0.722  0.216  0.075 | -0.175  0.014  0.004 | -1.723  1.494
+## 8  |  2.200 | -0.370  0.056  0.028 |  2.136  2.080  0.943 |  0.295  0.044
+## 9  |  1.473 | -0.402  0.067  0.075 | -1.212  0.670  0.678 |  0.322  0.052
+## 10 |  1.719 |  0.577  0.138  0.113 | -0.663  0.201  0.149 |  0.979  0.482
 ##      cos2  
-## 1   0.269 |
-## 2   0.067 |
-## 3   0.495 |
-## 4   0.277 |
-## 5   0.279 |
-## 6   0.813 |
-## 7   0.165 |
-## 8   0.407 |
-## 9   0.008 |
-## 10  0.004 |
+## 1   0.158 |
+## 2   0.247 |
+## 3   0.287 |
+## 4   0.078 |
+## 5   0.150 |
+## 6   0.017 |
+## 7   0.425 |
+## 8   0.018 |
+## 9   0.048 |
+## 10  0.324 |
 ## 
 ## Variables
 ##       Dim.1    ctr   cos2    Dim.2    ctr   cos2    Dim.3    ctr   cos2  
-## V1 |  0.006  0.003  0.000 |  0.809 59.568  0.655 |  0.343 11.401  0.117 |
-## V2 |  0.744 44.326  0.554 | -0.111  1.126  0.012 | -0.218  4.610  0.047 |
-## V3 |  0.421 14.172  0.177 | -0.491 21.942  0.241 |  0.313  9.506  0.098 |
-## V4 |  0.720 41.478  0.519 |  0.399 14.492  0.159 |  0.019  0.036  0.000 |
-## V5 |  0.016  0.022  0.000 | -0.178  2.872  0.032 |  0.875 74.447  0.766 |
+## V1 | -0.120  1.191  0.014 | -0.394 14.187  0.156 |  0.860 74.439  0.740 |
+## V2 |  0.711 41.772  0.505 |  0.231  4.876  0.053 |  0.181  3.287  0.033 |
+## V3 | -0.494 20.176  0.244 |  0.232  4.907  0.054 |  0.321 10.389  0.103 |
+## V4 |  0.582 28.025  0.339 | -0.568 29.438  0.323 |  0.037  0.141  0.001 |
+## V5 |  0.327  8.836  0.107 |  0.715 46.592  0.511 |  0.342 11.744  0.117 |
 ```
 
 ### Special cases and related concepts

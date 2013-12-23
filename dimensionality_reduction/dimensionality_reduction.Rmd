@@ -1,8 +1,10 @@
-Dimensionality Reduction
+Dimensionality Reduction with PCA
 ========================================================
 
 ```{r}
 library(ggplot2)
+library(FactoMineR)
+library(car)
 ```
 
 Principal Component Analysis
@@ -20,21 +22,25 @@ I prefer an easy to use package, `FactoMineR` for PCA, and will be using it here
 
 ```{r loaddata}
 library(FactoMineR)
-data(swiss)
+data(UScereal, package='MASS')
 ```
-```{r swissPCA}
-# Perform PCA
-sw.pca <- PCA(swiss)
-print(sw.pca)
+
+```{r cerealPCA}
+# PCA can only be done on numeric variables
+numericcols <- sapply(UScereal,is.numeric)
+# Perform PCA, skip the plots for now
+cereal.pca <- PCA(UScereal[numericcols])
 ```
 ### Interpreting PCA
 #### Eigenvalues
-The __eigenvalue__ of a principal component is the amount of variance explained by that component. These are in order, so the first eigenvalue will be the largest and so on. 
-#### Loadings
-The __loadings__ describe the relationships of the _variable_ to each of the components. A positive value for a loading indicates that an increased value for that variable results in an increased value for that PC. 
-#### PC Scores
-The __PC score__ describes where on the PC an _observation_ is.
+The __eigenvalue__ of a principal component is the amount of variance explained by that component. These are in order, so the first eigenvalue will be the largest and so on. We can retrieve them from `cereal.pca$eig`.
+
+```{r cerealeig}
+cereal.pca$eig
+```
+As we can see, we've gotten 9 PCs from the data, ordered by the amount of variance explained by the component. The first accounts for `r cereal.pca$eig[1,2]`% of the variance in the data. The first three PCs account for `r cereal.pca$eig[3,3]`% of the data. All of the PCs explain all of the variance in the data.
 #### How many components should I use?
+The eigenvalues of the PCs tell us how many it is useful to retain or examine. But there's not a really good way to objectively get it. 
 No rigorous way to choose:
 * __Kaiser rule__: Only keep PCs with eigenvalues over 1.
 * __Screeplot__: Plot the eigenvalues of PCs in order and look for an elbow (where the line bends into a flat plane, indicating random noise)
@@ -48,9 +54,71 @@ fmscree <- function(PCAobj) {
   print(plot)
   }
 ```
-### Examples
+```{r screereal}
+fmscree(cereal.pca)
+```
+#### Loadings
+The __loadings__ describe the relationships of the _variable_ to each of the components. A positive value for a loading indicates that an increased value for that variable results in an increased value for that PC. Variable level information is available in `cereal.pca$var`. The loadings themselves are in `cereal.pca$var$coord`.
+```{r cerealloadings}
+cereal.pca$var$coord
+```
+FactoMineR has a convenient way of plotting loadings, by calling `plot` on PCA objects.
+```{r}
+# choix chooses between individuals and variables.
+# Its 'choix' because the FactoMineR people are French.
+plot(cereal.pca,choix='var')
+```
+When you look at the plot you can already see a divide between sugary cereals (higher scores on PC2) vs fibery cereals (lower scores on PC2), but its hard to say anything about PC1, since all of the loadings are positive.
+#### Contributions
+Related to the loadings, the __contributions__ describe how much of a PC is due to a variable. These are available in `cereal.pca$var$contrib`. 
+```{r cerealcontrib}
+round(cereal.pca$var$contrib,2)
+```
+These are percents, and every column sums to 100%. If we look at PC1, we see that it's driven by protein, potassium, and calories mostly. Sugars and fat don't really enter into it. PC2, on the other hand is almost all sugars, calories, and fats. Be sure to check the loadings if you want a good understanding of what's going on with your PCs.
+#### PC Scores
+The __PC score__ describes where on the PC an _observation_ is. This is typically the most useful part of PCA, because it describes where your sample is in the reduced-dimension principal component space. Plotting them is the usual thing to do. If you have useful labels, use them in the plot.
+```{r}
+# You can plot, just like before with
+# plot(cereal.pca,choix='ind')
+# but the labels get a little crowded so I'm going to use ggplot
+scoredf <- data.frame(PC1=cereal.pca$ind$coord[,1],
+                      PC2=cereal.pca$ind$coord[,2],
+                      brand=rownames(UScereal))
+ggplot(scoredf,aes(x=PC1,y=PC2,label=brand)) + geom_point() + xlim(-5,10)
+ggplot(scoredf,aes(x=PC1,y=PC2,label=brand)) + geom_text(size=3,alpha=.75) + xlim(-5,10)
+```
+
+With how long the labels are, the graph of the PCs is hard to read. Maybe we'll get some insight on PC1 by looking at the extremes of the distribution.
+```{r pc1summary}
+summary(scoredf$PC1)
+Q1 <- summary(scoredf$PC1)[['1st Qu.']]
+Q3 <- summary(scoredf$PC1)[['3rd Qu.']]
+# The low scorers
+subset(scoredf,PC1 < Q1, select=c(PC1,PC2))
+
+# The high scorers
+subset(scoredf,PC1 > Q3, select=c(PC1,PC2))
+```
+Interpreting PCs is always subjective, but looking at this I think it's clear that PC1 is separating kid's cereal (Fruit Loops, Count Chocula) from grown up cereal (All the bran cereals). An equally valid interpretation is that PC1 is separating candy cereals from healthy cereals.
+
+What about PC2?
+```{r pc2summary}
+summary(scoredf$PC2)
+Q1 <- summary(scoredf$PC2)[['1st Qu.']]
+Q3 <- summary(scoredf$PC2)[['3rd Qu.']]
+# The low scorers
+subset(scoredf,PC2 < Q1, select=c(PC1,PC2))
+
+# The high scorers
+subset(scoredf,PC2 > Q3, select=c(PC1,PC2))
+```
+This one is not as clear as the others, but by looking at this in combination with the loadings for PC2 from the previous section, we can say that that PC2 is separating sugary cereals and fibery cereals.
+
+You can keep digging through for more information from additional PCs, but I couldn't pick out a good pattern from the loadings for PC3 (lower for increased calories but higher for increased sugar?), and since it already has a low eigenvalue (`r cereal.pca$eig[3,1]`), I'll call the rest of the variation noise. 
+
+### More Examples
 #### Comparing cars by their specs.
-The `mtcars` dataset has specs and performance for 32 cars from an issue of Motor Trend from 1972. We're going to use 9 of the predictors (skipping two categorical ones). When we look at the correlations, we see theres a good amount of 
+The `mtcars` dataset has specs and performance for 32 cars from an issue of Motor Trend from 1972. We're going to use 9 of the predictors (skipping two categorical ones). When we look at the correlations, we see there's a good amount of 
 ```{r}
 data(mtcars)
 symnum(cor(mtcars[,-c(8,9)]))
