@@ -63,7 +63,7 @@ The __loadings__ describe the relationships of the _variable_ to each of the com
 cereal.pca$var$coord
 ```
 FactoMineR has a convenient way of plotting loadings, by calling `plot` on PCA objects.
-```{r}
+```{r plotvariablecereal}
 # choix chooses between individuals and variables.
 # Its 'choix' because the FactoMineR people are French.
 plot(cereal.pca,choix='var')
@@ -108,13 +108,12 @@ Q1 <- summary(scoredf$PC2)[['1st Qu.']]
 Q3 <- summary(scoredf$PC2)[['3rd Qu.']]
 # The low scorers
 subset(scoredf,PC2 < Q1, select=c(PC1,PC2))
-
 # The high scorers
 subset(scoredf,PC2 > Q3, select=c(PC1,PC2))
 ```
 This one is not as clear as the others, but by looking at this in combination with the loadings for PC2 from the previous section, we can say that that PC2 is separating sugary cereals and fibery cereals.
 
-You can keep digging through for more information from additional PCs, but I couldn't pick out a good pattern from the loadings for PC3 (lower for increased calories but higher for increased sugar?), and since it already has a low eigenvalue (`r cereal.pca$eig[3,1]`), I'll call the rest of the variation noise. 
+You can keep digging through for more information from additional PCs, but I couldn't pick out a good pattern from the loadings for PC3 (lower for increased calories but higher for increased sugar?), and since it already has a low eigenvalue (`r cereal.pca$eig[3,1]`), I'll call the rest of the variation noise.
 
 ### More Examples
 #### Comparing cars by their specs.
@@ -200,24 +199,6 @@ summary(PCA(matrix(rnorm(1000),ncol=5)))
 ### Special cases and related concepts
 * Sparse PCA
 * Principal component regression
-* Partial least squares
-
-Factor Analysis
------
-### What is factor analysis
-### Difference between EFA and PCA
-
-
-Independent Component Analysis
------
-```{r}
-library(fastICA)
-```
-Multidimensional Scaling
------
-
-Nonnegative Matrix Factorization
------
 
 Kernel Methods
 -----

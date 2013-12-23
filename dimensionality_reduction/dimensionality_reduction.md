@@ -135,7 +135,7 @@ FactoMineR has a convenient way of plotting loadings, by calling `plot` on PCA o
 plot(cereal.pca, choix = "var")
 ```
 
-![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
+![plot of chunk plotvariablecereal](figure/plotvariablecereal.png) 
 
 When you look at the plot you can already see a divide between sugary cereals (higher scores on PC2) vs fibery cereals (lower scores on PC2), but its hard to say anything about PC1, since all of the loadings are positive.
 #### Contributions
@@ -171,14 +171,14 @@ ggplot(scoredf, aes(x = PC1, y = PC2, label = brand)) + geom_point() + xlim(-5,
     10)
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-41.png) 
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-31.png) 
 
 ```r
 ggplot(scoredf, aes(x = PC1, y = PC2, label = brand)) + geom_text(size = 3, 
     alpha = 0.75) + xlim(-5, 10)
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-42.png) 
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-32.png) 
 
 
 With how long the labels are, the graph of the PCs is hard to read. Maybe we'll get some insight on PC1 by looking at the extremes of the distribution.
@@ -286,7 +286,6 @@ subset(scoredf, PC2 < Q1, select = c(PC1, PC2))
 ```
 
 ```r
-
 # The high scorers
 subset(scoredf, PC2 > Q3, select = c(PC1, PC2))
 ```
@@ -313,7 +312,7 @@ subset(scoredf, PC2 > Q3, select = c(PC1, PC2))
 
 This one is not as clear as the others, but by looking at this in combination with the loadings for PC2 from the previous section, we can say that that PC2 is separating sugary cereals and fibery cereals.
 
-You can keep digging through for more information from additional PCs, but I couldn't pick out a good pattern from the loadings for PC3 (lower for increased calories but higher for increased sugar?), and since it already has a low eigenvalue (1.1947), I'll call the rest of the variation noise. 
+You can keep digging through for more information from additional PCs, but I couldn't pick out a good pattern from the loadings for PC3 (lower for increased calories but higher for increased sugar?), and since it already has a low eigenvalue (1.1947), I'll call the rest of the variation noise.
 
 ### More Examples
 #### Comparing cars by their specs.
@@ -424,7 +423,7 @@ Looking at the Scree plot, its clear that there are only two major principal com
 plot(mtcars.pca, choix = "ind")
 ```
 
-![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5.png) 
 
 Just by eyeballing it, you can see that PC1 (accounting for ~63% of the variance in the dataset) measures the 'fanciness' of the car, as well as it can by specs and performance. In the negative direction you have economy cars, like Hondas and Fiats, as well as a few higher end models which have lower specification. On the other end you have higher end luxury cars: Maseratis, Chryslers, Cadillacs, etc. 
 
@@ -436,7 +435,7 @@ Principal component 2 seems to separate cars based on performance. The Ferrari, 
 plot(mtcars.pca, choix = "var")
 ```
 
-![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6.png) 
 
 This plot shows the relationship of the *variables* to the two principal components. Cars that get better mileage are usually economy cars, and mpg shows that. A larger value for mpg results in a lower score on PC1 (the fancy car PC). On the other hand, fancier cars usually have bigger engines, and larger numbers of cylinders, increased displacement, and weight all results in a higher score on PC1. 
 
@@ -450,7 +449,7 @@ fl.pca <- PCA(Florida[1:10], graph = F)
 plot(fl.pca, choix = "ind")
 ```
 
-![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
+![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
 
 Lets look at the first two PCs. So theres an expected group around 0,0. And you can see the large population counties (Dade, Hillsborough, etc) off a little farther. They're going to separate out in any analysis not normalized by population size because their populations are so much larger than the other counties. But the real star of this plot is Volusia county, which is far, far away on PC2 from the rest of the counties. 
 
@@ -458,7 +457,7 @@ Lets look at the first two PCs. So theres an expected group around 0,0. And you 
 plot(fl.pca, choix = "var")
 ```
 
-![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
 
 When we look at the variable plot, we see that high scores on PC2 are driven by voting for some people I've never heard of (Harris, Phillips, Browne). So that's a big hint that somethings up. Lets compare Volusia to two (geographically) nearby counties, Flagler and Seminole. 
 
@@ -588,7 +587,7 @@ c$PC1 <- c.pca$ind$coord[, 1]
 ggplot(c, aes(x = PC1, fill = sp)) + geom_density() + facet_grid(sp ~ sex)
 ```
 
-![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11.png) 
+![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10.png) 
 
 #### You can get prinicpal components out of nothing.
 Principal components can always be found. That doesn't necessarily mean they mean something. Here's some randomly generated data: 200 'observations' of 5 variables, all random normal variates. 
@@ -597,7 +596,7 @@ Principal components can always be found. That doesn't necessarily mean they mea
 summary(PCA(matrix(rnorm(1000), ncol = 5)))
 ```
 
-![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-121.png) ![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-122.png) 
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-111.png) ![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-112.png) 
 
 ```
 ## 
@@ -607,66 +606,46 @@ summary(PCA(matrix(rnorm(1000), ncol = 5)))
 ## 
 ## Eigenvalues
 ##                        Dim.1   Dim.2   Dim.3   Dim.4   Dim.5
-## Variance               1.209   1.096   0.994   0.941   0.760
-## % of var.             24.181  21.928  19.877  18.817  15.196
-## Cumulative % of var.  24.181  46.109  65.987  84.804 100.000
+## Variance               1.142   1.126   1.010   0.908   0.814
+## % of var.             22.840  22.514  20.198  18.165  16.283
+## Cumulative % of var.  22.840  45.354  65.552  83.717 100.000
 ## 
 ## Individuals (the 10 first)
 ##        Dist    Dim.1    ctr   cos2    Dim.2    ctr   cos2    Dim.3    ctr
-## 1  |  2.409 |  0.289  0.035  0.014 | -1.765  1.421  0.537 |  0.958  0.462
-## 2  |  2.566 |  0.067  0.002  0.001 | -1.124  0.576  0.192 |  1.275  0.818
-## 3  |  2.191 |  0.502  0.104  0.053 | -0.867  0.343  0.157 | -1.173  0.692
-## 4  |  1.872 | -1.545  0.987  0.681 |  0.906  0.375  0.234 | -0.524  0.138
-## 5  |  3.146 |  1.510  0.943  0.230 |  1.281  0.748  0.166 |  1.220  0.749
-## 6  |  2.541 |  1.691  1.182  0.443 | -0.351  0.056  0.019 |  0.332  0.056
-## 7  |  2.644 | -0.722  0.216  0.075 | -0.175  0.014  0.004 | -1.723  1.494
-## 8  |  2.200 | -0.370  0.056  0.028 |  2.136  2.080  0.943 |  0.295  0.044
-## 9  |  1.473 | -0.402  0.067  0.075 | -1.212  0.670  0.678 |  0.322  0.052
-## 10 |  1.719 |  0.577  0.138  0.113 | -0.663  0.201  0.149 |  0.979  0.482
+## 1  |  2.523 | -2.072  1.880  0.675 |  0.159  0.011  0.004 | -0.224  0.025
+## 2  |  1.795 |  0.397  0.069  0.049 |  1.237  0.680  0.475 |  0.585  0.169
+## 3  |  2.086 | -0.427  0.080  0.042 | -0.004  0.000  0.000 | -1.014  0.509
+## 4  |  1.947 |  0.390  0.067  0.040 | -1.104  0.541  0.321 |  1.485  1.092
+## 5  |  2.813 |  1.584  1.099  0.317 |  0.485  0.105  0.030 | -1.533  1.163
+## 6  |  1.978 |  0.146  0.009  0.005 |  0.498  0.110  0.063 | -1.080  0.578
+## 7  |  2.000 | -1.490  0.972  0.555 |  0.389  0.067  0.038 | -1.022  0.517
+## 8  |  3.049 | -1.258  0.693  0.170 |  2.236  2.221  0.538 | -0.674  0.225
+## 9  |  2.047 |  0.557  0.136  0.074 |  0.854  0.324  0.174 |  0.795  0.313
+## 10 |  1.394 | -0.052  0.001  0.001 | -1.229  0.671  0.777 |  0.355  0.062
 ##      cos2  
-## 1   0.158 |
-## 2   0.247 |
-## 3   0.287 |
-## 4   0.078 |
-## 5   0.150 |
-## 6   0.017 |
-## 7   0.425 |
-## 8   0.018 |
-## 9   0.048 |
-## 10  0.324 |
+## 1   0.008 |
+## 2   0.106 |
+## 3   0.236 |
+## 4   0.582 |
+## 5   0.297 |
+## 6   0.298 |
+## 7   0.261 |
+## 8   0.049 |
+## 9   0.151 |
+## 10  0.065 |
 ## 
 ## Variables
 ##       Dim.1    ctr   cos2    Dim.2    ctr   cos2    Dim.3    ctr   cos2  
-## V1 | -0.120  1.191  0.014 | -0.394 14.187  0.156 |  0.860 74.439  0.740 |
-## V2 |  0.711 41.772  0.505 |  0.231  4.876  0.053 |  0.181  3.287  0.033 |
-## V3 | -0.494 20.176  0.244 |  0.232  4.907  0.054 |  0.321 10.389  0.103 |
-## V4 |  0.582 28.025  0.339 | -0.568 29.438  0.323 |  0.037  0.141  0.001 |
-## V5 |  0.327  8.836  0.107 |  0.715 46.592  0.511 |  0.342 11.744  0.117 |
+## V1 |  0.666 38.863  0.444 |  0.186  3.076  0.035 |  0.296  8.661  0.087 |
+## V2 | -0.485 20.625  0.236 |  0.292  7.552  0.085 |  0.678 45.547  0.460 |
+## V3 |  0.650 37.014  0.423 |  0.109  1.047  0.012 |  0.333 10.969  0.111 |
+## V4 | -0.161  2.283  0.026 |  0.781 54.174  0.610 |  0.095  0.890  0.009 |
+## V5 | -0.118  1.215  0.014 | -0.620 34.151  0.384 |  0.585 33.933  0.343 |
 ```
 
 ### Special cases and related concepts
 * Sparse PCA
 * Principal component regression
-* Partial least squares
-
-Factor Analysis
------
-### What is factor analysis
-### Difference between EFA and PCA
-
-
-Independent Component Analysis
------
-
-```r
-library(fastICA)
-```
-
-Multidimensional Scaling
------
-
-Nonnegative Matrix Factorization
------
 
 Kernel Methods
 -----
