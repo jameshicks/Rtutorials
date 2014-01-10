@@ -25,6 +25,8 @@ library(FactoMineR)
 
 ```r
 library(car)
+library(rpart)  # for the car90 dataset
+library(cluster)
 ```
 
 
@@ -43,7 +45,6 @@ I prefer an easy to use package, `FactoMineR` for PCA, and will be using it here
 
 
 ```r
-library(FactoMineR)
 data(UScereal, package = "MASS")
 ```
 
@@ -83,8 +84,8 @@ cereal.pca$eig
 As we can see, we've gotten 9 PCs from the data, ordered by the amount of variance explained by the component. The first accounts for 50.0888% of the variance in the data. The first three PCs account for 78.4636% of the data. All of the PCs explain all of the variance in the data.
 #### How many components should I use?
 The eigenvalues of the PCs tell us how many it is useful to retain or examine. But there's not a really good way to objectively get it. 
-No rigorous way to choose:
-* __Kaiser rule__: Only keep PCs with eigenvalues over 1.
+No rigorous way to choose, but here are some options:
+* __Kaiser rule__: Only keep PCs with eigenvalues over 1. An eigenvalue greater than one indicates that a PC accounts for more of the variance than one of the original predictors and you've successfully reduced dimensionality.
 * __Screeplot__: Plot the eigenvalues of PCs in order and look for an elbow (where the line bends into a flat plane, indicating random noise)
 
 ```r
@@ -314,8 +315,9 @@ This one is not as clear as the others, but by looking at this in combination wi
 
 You can keep digging through for more information from additional PCs, but I couldn't pick out a good pattern from the loadings for PC3 (lower for increased calories but higher for increased sugar?), and since it already has a low eigenvalue (1.1947), I'll call the rest of the variation noise.
 
-### More Examples
-#### Comparing cars by their specs.
+More Examples
+------
+### Comparing cars by their specs.
 The `mtcars` dataset has specs and performance for 32 cars from an issue of Motor Trend from 1972. We're going to use 9 of the predictors (skipping two categorical ones). When we look at the correlations, we see there's a good amount of 
 
 ```r
@@ -423,7 +425,7 @@ Looking at the Scree plot, its clear that there are only two major principal com
 plot(mtcars.pca, choix = "ind")
 ```
 
-![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5.png) 
+![plot of chunk plotmtcarspcaind](figure/plotmtcarspcaind.png) 
 
 Just by eyeballing it, you can see that PC1 (accounting for ~63% of the variance in the dataset) measures the 'fanciness' of the car, as well as it can by specs and performance. In the negative direction you have economy cars, like Hondas and Fiats, as well as a few higher end models which have lower specification. On the other end you have higher end luxury cars: Maseratis, Chryslers, Cadillacs, etc. 
 
@@ -435,12 +437,12 @@ Principal component 2 seems to separate cars based on performance. The Ferrari, 
 plot(mtcars.pca, choix = "var")
 ```
 
-![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6.png) 
+![plot of chunk plotmtcarspcavar](figure/plotmtcarspcavar.png) 
 
 This plot shows the relationship of the *variables* to the two principal components. Cars that get better mileage are usually economy cars, and mpg shows that. A larger value for mpg results in a lower score on PC1 (the fancy car PC). On the other hand, fancier cars usually have bigger engines, and larger numbers of cylinders, increased displacement, and weight all results in a higher score on PC1. 
 
 Cars that perform poorly on the quarter mile get lower scores on PC2. These are also typically the lower spec'ed cars, so increased values of qsec result in lower scores also get you a lower score on PC1. The opposite is true for number of carbs and horsepower. 
-#### Outlier detection: The Florida 2000 election.
+### Outlier detection: The Florida 2000 election.
 It can be hard to identify outliers in high dimensional spaces, where there are so many things going on. A great place to look for weird things happening is the 2000  Florida election, where weird things did happen. The dataset `Florida` in package `car` has vote counts for each florida county, for 10 presidential candidates. What happens when you look at the vote counts with PCA.  
 
 ```r
@@ -449,7 +451,7 @@ fl.pca <- PCA(Florida[1:10], graph = F)
 plot(fl.pca, choix = "ind")
 ```
 
-![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7.png) 
+![plot of chunk floridapca](figure/floridapca.png) 
 
 Lets look at the first two PCs. So theres an expected group around 0,0. And you can see the large population counties (Dade, Hillsborough, etc) off a little farther. They're going to separate out in any analysis not normalized by population size because their populations are so much larger than the other counties. But the real star of this plot is Volusia county, which is far, far away on PC2 from the rest of the counties. 
 
@@ -457,30 +459,133 @@ Lets look at the first two PCs. So theres an expected group around 0,0. And you 
 plot(fl.pca, choix = "var")
 ```
 
-![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
+![plot of chunk floridapcavarplot](figure/floridapcavarplot.png) 
 
 When we look at the variable plot, we see that high scores on PC2 are driven by voting for some people I've never heard of (Harris, Phillips, Browne). So that's a big hint that somethings up. Lets compare Volusia to two (geographically) nearby counties, Flagler and Seminole. 
 
 
 ```r
-Florida[c("SEMINOLE", "FLAGLER", "VOLUSIA"), ]
+# We'll look at the percents too.
+Florida.percent <- round(100 * Florida[1:10]/Florida[, "Total"], 3)
+
+volusia.neighbors <- c("VOLUSIA", "SEMINOLE", "FLAGLER", "LAKE", "PUTNAM", "MARION", 
+    "ORANGE")
+Florida[volusia.neighbors, c("GORE", "BUSH", "PHILLIPS", "HARRIS", "BROWNE")]
 ```
 
 ```
-##           GORE  BUSH BUCHANAN NADER BROWNE HAGELIN HARRIS MCREYNOLDS
-## SEMINOLE 58888 75293      194  1940    551      38     38          5
-## FLAGLER  13891 12608       83   435     60       4      1          3
-## VOLUSIA  97063 82214      396  2436   3211      33   9888          3
-##          MOOREHEAD PHILLIPS  Total
-## SEMINOLE        70       27 137044
-## FLAGLER         12        3  27100
-## VOLUSIA         59     2927 198230
+##            GORE   BUSH PHILLIPS HARRIS BROWNE
+## VOLUSIA   97063  82214     2927   9888   3211
+## SEMINOLE  58888  75293       27     38    551
+## FLAGLER   13891  12608        3      1     60
+## LAKE      36555  49963       21      4    203
+## PUTNAM    12091  13439       10      2    114
+## MARION    44648  55135       22     14    361
+## ORANGE   140115 134476       41     13    892
 ```
 
-So it looks like the variable causing the issue is too many people voting for Harris than you might expect. For comparison, the median number of votes for Harris per county was 4.
+```r
+Florida.percent[volusia.neighbors, c("GORE", "BUSH", "PHILLIPS", "HARRIS", "BROWNE")]
+```
+
+```
+##           GORE  BUSH PHILLIPS HARRIS BROWNE
+## VOLUSIA  48.97 41.47    1.477  4.988  1.620
+## SEMINOLE 42.97 54.94    0.020  0.028  0.402
+## FLAGLER  51.26 46.52    0.011  0.004  0.221
+## LAKE     41.28 56.43    0.024  0.005  0.229
+## PUTNAM   46.14 51.28    0.038  0.008  0.435
+## MARION   43.50 53.72    0.021  0.014  0.352
+## ORANGE   50.04 48.03    0.015  0.005  0.319
+```
+
+So it looks like the variable causing the issue is too many people voting for Harris than you might expect, given the surrounding counties. For comparison, the median number of votes for Harris per county was 4.
 
 In 2000, Volusia county's computers had an error that (among other things) gave 9888 erroneous votes to James Harris, the Socialist Workers Party candidate for president. [Here's a New York Times article on it](http://www.nytimes.com/2000/11/10/us/2000-campaign-florida-vote-democrats-tell-problems-polls-across-florida.html?pagewanted=all&src=pm)
-#### Crabs: reducing many size measurements into a one dimensional feature space
+
+What about principal component #3? It still explains 10% of the variance, and has an eigenvalue (slightly) greater than 1. Let's see if there's anything interesting going on there. Let's look at components 1 and 3 together (we already pretty much know what's gone on with PC2 already).
+
+```r
+plot(fl.pca, axes = c(1, 3), choix = "ind")
+```
+
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-51.png) 
+
+```r
+plot(fl.pca, axes = c(1, 3), choix = "var")
+```
+
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-52.png) 
+
+This time we get a similar scenario to PC2. This time with two datapoints sticking out, Alachua and Palm Beach. Positive scores on PC2 are driven by votes for McReynolds (the Socialist Party candidate) and Buchanan (a far-right candidate from the Reform party). 
+
+```r
+alachua.neighbors <- c("ALACHUA", "BRADFORD", "UNION", "LEVY", "PUTNAM", "CLAY", 
+    "COLUMBIA", "GILCHRIST")
+Florida[alachua.neighbors, c("GORE", "BUSH", "MCREYNOLDS", "BUCHANAN")]
+```
+
+```
+##            GORE  BUSH MCREYNOLDS BUCHANAN
+## ALACHUA   47300 34062        658      262
+## BRADFORD   3072  5413          0       65
+## UNION      1399  2326          0       26
+## LEVY       5403  6860          1       67
+## PUTNAM    12091 13439          4      147
+## CLAY      14630 41745          3      186
+## COLUMBIA   7047 10964          2       89
+## GILCHRIST  1910  3300          0       29
+```
+
+```r
+Florida.percent[alachua.neighbors, c("GORE", "BUSH", "MCREYNOLDS", "BUCHANAN")]
+```
+
+```
+##            GORE  BUSH MCREYNOLDS BUCHANAN
+## ALACHUA   54.85 39.50      0.763    0.304
+## BRADFORD  35.44 62.44      0.000    0.750
+## UNION     36.87 61.31      0.000    0.685
+## LEVY      42.44 53.89      0.008    0.526
+## PUTNAM    46.14 51.28      0.015    0.561
+## CLAY      25.51 72.78      0.005    0.324
+## COLUMBIA  38.08 59.24      0.011    0.481
+## GILCHRIST 35.40 61.17      0.000    0.538
+```
+
+Alachua has alot more votes for McReynolds than the surrounding counties (even if it only comes out to 0.763%). It's also the home of the University of Florida. Since he's the socialist candidate, I'm pretty comfortable chalking that up to college students' votes. 
+
+```r
+# I'm going with similar counties instead of neighbors, because I think St.
+# Lucie is more like Palm Beach than, say, Hendry County
+palmbeach.similar <- c("PALM.BEACH", "BROWARD", "ST.LUCIE", "MARTIN", "DADE")
+Florida[palmbeach.similar, c("GORE", "BUSH", "MCREYNOLDS", "BUCHANAN")]
+```
+
+```
+##              GORE   BUSH MCREYNOLDS BUCHANAN
+## PALM.BEACH 268945 152846        302     3407
+## BROWARD    386518 177279         35      789
+## ST.LUCIE    41559  34705         10      124
+## MARTIN      26619  33864          8      108
+## DADE       328702 289456         36      561
+```
+
+```r
+Florida.percent[palmbeach.similar, c("GORE", "BUSH", "MCREYNOLDS", "BUCHANAN")]
+```
+
+```
+##             GORE  BUSH MCREYNOLDS BUCHANAN
+## PALM.BEACH 62.22 35.36      0.070    0.788
+## BROWARD    67.42 30.92      0.006    0.138
+## ST.LUCIE   53.29 44.50      0.013    0.159
+## MARTIN     43.04 54.75      0.013    0.175
+## DADE       52.57 46.29      0.006    0.090
+```
+
+Palm Beach on the other had got way more votes for Buchanan than similar counties (even Broward and Dade, which have larger populations). Palm Beach used butterfly ballots which were thought to confuse voters, who intending to vote for Gore voted for Pat Buchanan. This was a major point of contention in tallying votes. [Here's a Wikipedia page on it](http://en.wikipedia.org/wiki/United_States_presidential_election,_2000_Florida_results#Palm_Beach_County.27s_butterfly_ballots).
+### Crabs: reducing many size measurements into a one dimensional feature space
 The `crabs` dataset is a catalog of measurements of 8 variables on 200 crabs. We're concerned right now with continuous variables, frontal lobe size (FL), rear width (RW), carapace length (CL), carapace width (CW), and body depth (BD). But species (O and M) and sex are available.
 
 
@@ -587,16 +692,71 @@ c$PC1 <- c.pca$ind$coord[, 1]
 ggplot(c, aes(x = PC1, fill = sp)) + geom_density() + facet_grid(sp ~ sex)
 ```
 
-![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10.png) 
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
 
-#### You can get prinicpal components out of nothing.
+### Reducing dimensionality before clustering
+
+
+```r
+library(cluster)
+data(car90, package = "rpart")
+# We only want the numeric predictors
+car90n <- car90[, sapply(car90, is.numeric)]
+```
+
+Just _a priori_, I'll say there are three classes of cars in the dataset. Let's run the classifier.
+
+```r
+# Calculate the distances
+car90n.dist <- daisy(car90n)
+car90n.pam <- pam(car90n.dist, k = 3)
+```
+
+The point of classification is that an observation in class A should be more similar to other points in class A than to points in other classes. A good measure of this is the __silhouette__, which looks at those similarities. A silhouette maximizes at 1, and a negative value indicates that a data point is probably misclassified (it's more similar to points in other classes than its own.) You can also look at average silhouettes in a class as a measure of how well fit that class is. We can plot silhouettes with `plot` on the object returned from `pam`. 
+
+```r
+plot(car90n.pam, main = "Clustering of nontransformed car90n data")
+```
+
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11.png) 
+
+The bars on the chart represents the silhoutte for each datapoint. Its obvious that alot of points are not classified well. On the right hand side you can see the sizes and average silhoutte for the cluster. Clusters 2 and 3 do terrible jobs of classifying the data and class 1 isnt so hot either.
+So that classification didn't do well. But we already know that cars _do_ come in different classes. That's how they're manufactured. Sports cars are different than sedans. SUVs and vans come on truck frames and should class together alot of the time if you're going by specs. So what's going on?
+#### The curse of dimensionality
+What's happening is the *curse of dimensionality*, which is when non-intuitive things start happening when dealing with large predictor datasets. This can be a problem for kNN classifiers (like `pam`), in two different ways.
+* __Distances__: One of the big problems for nearest-neighbor approaches in high dimensions is that the euclidiean distance formula $$D(p,q)=\sqrt[n]{(q_{1} - p_{1})^{2}  + (q_{2} - p_{2})^{2} + \cdots + (q_{n} - p_{n})^{2}}$$ considers _all_ the features. As you add more features, distances become larger, and you have to go farther and farther to find those nearest neighbors. This can often result in picking a neighbor with the 'wrong' class, and soon your classification system is shot, because pretty much every datapoint has a neighbor in the wrong class.
+* __Noise__: The other big problem is that kNN approaches consider all of the predictors when doing the classification. I know this sounds like the last bullet point but it's also bad for a different reason. If the predictors are noisy, that noise is reflected in the the classifications. If you have a predictor that should be completely unrelated to the class, that will be reflected in the classification too.
+
+If the main advantages of PCA are _dimensionality reduction_ (by keeping the PCs that explain a large proportion of variance) and _noise reduction_ (by ignoring the extraneous PCs that don't explain much variance), it looks like it might be something that can help remedy these problems. Lets try projecting the `car90` data down into a lower dimensionality space.
+
+
+```r
+car90n.pca <- PCA(car90n, graph = F, ncp = 5)
+fmscree(car90n.pca)
+```
+
+![plot of chunk car90npca](figure/car90npca.png) 
+
+There are 5 major PCs in the data, going by either the screeplot or the Kaiser rule. I've kept data on the 5 PCs in the output of `PCA` with the `ncp` flag. Let's try clustering *that* data and looking at how the clustering goes.
+
+```r
+car90n.pca.dist <- daisy(car90n.pca$ind$coord)
+car90n.pca.pam <- pam(car90n.pca.dist, k = 3)
+plot(car90n.pca.pam, main = "Clustering of PCs of car90n data")
+```
+
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12.png) 
+
+This way is a lot better! The average silhouttes are much higher and theres only one value that looks misclassified. 
+
+### You can get prinicpal components out of nothing.
 Principal components can always be found. That doesn't necessarily mean they mean something. Here's some randomly generated data: 200 'observations' of 5 variables, all random normal variates. 
 
 ```r
 summary(PCA(matrix(rnorm(1000), ncol = 5)))
 ```
 
-![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-111.png) ![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-112.png) 
+![plot of chunk unnamed-chunk-13](figure/unnamed-chunk-131.png) ![plot of chunk unnamed-chunk-13](figure/unnamed-chunk-132.png) 
 
 ```
 ## 
@@ -606,44 +766,46 @@ summary(PCA(matrix(rnorm(1000), ncol = 5)))
 ## 
 ## Eigenvalues
 ##                        Dim.1   Dim.2   Dim.3   Dim.4   Dim.5
-## Variance               1.142   1.126   1.010   0.908   0.814
-## % of var.             22.840  22.514  20.198  18.165  16.283
-## Cumulative % of var.  22.840  45.354  65.552  83.717 100.000
+## Variance               1.259   1.108   0.997   0.883   0.752
+## % of var.             25.183  22.169  19.942  17.662  15.044
+## Cumulative % of var.  25.183  47.352  67.294  84.956 100.000
 ## 
 ## Individuals (the 10 first)
 ##        Dist    Dim.1    ctr   cos2    Dim.2    ctr   cos2    Dim.3    ctr
-## 1  |  2.523 | -2.072  1.880  0.675 |  0.159  0.011  0.004 | -0.224  0.025
-## 2  |  1.795 |  0.397  0.069  0.049 |  1.237  0.680  0.475 |  0.585  0.169
-## 3  |  2.086 | -0.427  0.080  0.042 | -0.004  0.000  0.000 | -1.014  0.509
-## 4  |  1.947 |  0.390  0.067  0.040 | -1.104  0.541  0.321 |  1.485  1.092
-## 5  |  2.813 |  1.584  1.099  0.317 |  0.485  0.105  0.030 | -1.533  1.163
-## 6  |  1.978 |  0.146  0.009  0.005 |  0.498  0.110  0.063 | -1.080  0.578
-## 7  |  2.000 | -1.490  0.972  0.555 |  0.389  0.067  0.038 | -1.022  0.517
-## 8  |  3.049 | -1.258  0.693  0.170 |  2.236  2.221  0.538 | -0.674  0.225
-## 9  |  2.047 |  0.557  0.136  0.074 |  0.854  0.324  0.174 |  0.795  0.313
-## 10 |  1.394 | -0.052  0.001  0.001 | -1.229  0.671  0.777 |  0.355  0.062
+## 1  |  3.002 | -2.573  2.628  0.735 |  0.244  0.027  0.007 | -0.182  0.017
+## 2  |  2.406 | -0.128  0.006  0.003 | -0.797  0.286  0.110 | -0.930  0.434
+## 3  |  3.192 |  1.994  1.579  0.390 | -0.066  0.002  0.000 | -1.180  0.699
+## 4  |  1.916 |  1.393  0.771  0.529 |  0.096  0.004  0.003 | -0.724  0.263
+## 5  |  2.849 | -2.031  1.637  0.508 |  0.427  0.082  0.022 | -1.565  1.229
+## 6  |  1.907 | -0.296  0.035  0.024 |  1.009  0.459  0.280 | -0.804  0.324
+## 7  |  2.194 | -0.527  0.110  0.058 |  0.498  0.112  0.051 | -1.616  1.309
+## 8  |  2.476 | -1.778  1.255  0.516 | -0.495  0.110  0.040 | -1.172  0.689
+## 9  |  1.623 |  0.279  0.031  0.030 |  0.684  0.211  0.178 | -0.638  0.204
+## 10 |  2.777 |  0.416  0.069  0.022 | -0.160  0.012  0.003 |  1.990  1.986
 ##      cos2  
-## 1   0.008 |
-## 2   0.106 |
-## 3   0.236 |
-## 4   0.582 |
-## 5   0.297 |
-## 6   0.298 |
-## 7   0.261 |
-## 8   0.049 |
-## 9   0.151 |
-## 10  0.065 |
+## 1   0.004 |
+## 2   0.149 |
+## 3   0.137 |
+## 4   0.143 |
+## 5   0.302 |
+## 6   0.178 |
+## 7   0.542 |
+## 8   0.224 |
+## 9   0.155 |
+## 10  0.514 |
 ## 
 ## Variables
 ##       Dim.1    ctr   cos2    Dim.2    ctr   cos2    Dim.3    ctr   cos2  
-## V1 |  0.666 38.863  0.444 |  0.186  3.076  0.035 |  0.296  8.661  0.087 |
-## V2 | -0.485 20.625  0.236 |  0.292  7.552  0.085 |  0.678 45.547  0.460 |
-## V3 |  0.650 37.014  0.423 |  0.109  1.047  0.012 |  0.333 10.969  0.111 |
-## V4 | -0.161  2.283  0.026 |  0.781 54.174  0.610 |  0.095  0.890  0.009 |
-## V5 | -0.118  1.215  0.014 | -0.620 34.151  0.384 |  0.585 33.933  0.343 |
+## V1 |  0.576 26.393  0.332 |  0.432 16.803  0.186 | -0.133  1.773  0.018 |
+## V2 | -0.195  3.015  0.038 |  0.845 64.439  0.714 | -0.106  1.125  0.011 |
+## V3 |  0.054  0.232  0.003 |  0.165  2.464  0.027 |  0.983 96.963  0.967 |
+## V4 | -0.717 40.844  0.514 |  0.343 10.616  0.118 | -0.026  0.069  0.001 |
+## V5 |  0.610 29.516  0.372 |  0.251  5.678  0.063 | -0.026  0.069  0.001 |
 ```
 
-### Special cases and related concepts
+
+Special cases and related concepts
+------
 * Sparse PCA
 * Principal component regression
 
