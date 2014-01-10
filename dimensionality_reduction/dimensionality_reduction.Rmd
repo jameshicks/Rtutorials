@@ -42,8 +42,8 @@ cereal.pca$eig
 As we can see, we've gotten 9 PCs from the data, ordered by the amount of variance explained by the component. The first accounts for `r cereal.pca$eig[1,2]`% of the variance in the data. The first three PCs account for `r cereal.pca$eig[3,3]`% of the data. All of the PCs explain all of the variance in the data.
 #### How many components should I use?
 The eigenvalues of the PCs tell us how many it is useful to retain or examine. But there's not a really good way to objectively get it. 
-No rigorous way to choose:
-* __Kaiser rule__: Only keep PCs with eigenvalues over 1.
+No rigorous way to choose, but here are some options:
+* __Kaiser rule__: Only keep PCs with eigenvalues over 1. An eigenvalue greater than one indicates that a PC accounts for more of the variance than one of the original predictors and you've successfully reduced dimensionality.
 * __Screeplot__: Plot the eigenvalues of PCs in order and look for an elbow (where the line bends into a flat plane, indicating random noise)
 ```{r}
 # A function to make a prettier screeplot than you'd get with default graphics
