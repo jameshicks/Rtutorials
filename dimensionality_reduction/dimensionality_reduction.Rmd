@@ -218,12 +218,53 @@ c <- crabs
 c$PC1 <- c.pca$ind$coord[,1]
 ggplot(c,aes(x=PC1,fill=sp)) + geom_density() + facet_grid(sp~sex)
 ```
-#### You can get prinicpal components out of nothing.
+### Reducing dimensionality before clustering
+
+```{r}
+library(cluster)
+data(car90, package='rpart')
+# We only want the numeric predictors
+car90n <- car90[,sapply(car90,is.numeric)]
+```
+Just _a priori_, I'll say there are three classes of cars in the dataset. Let's run the classifier.
+```{r}
+# Calculate the distances
+car90n.dist <- daisy(car90n)
+car90n.pam <- pam(car90n.dist, k=3)
+```
+The point of classification is that an observation in class A should be more similar to other points in class A than to points in other classes. A good measure of this is the __silhouette__, which looks at those similarities. A silhouette maximizes at 1, and a negative value indicates that a data point is probably misclassified (it's more similar to points in other classes than its own.) You can also look at average silhouettes in a class as a measure of how well fit that class is. We can plot silhouettes with `plot` on the object returned from `pam`. 
+```{r}
+plot(car90n.pam, main='Clustering of nontransformed car90n data')
+```
+The bars on the chart represents the silhoutte for each datapoint. Its obvious that alot of points are not classified well. On the right hand side you can see the sizes and average silhoutte for the cluster. Clusters 2 and 3 do terrible jobs of classifying the data and class 1 isnt so hot either.
+So that classification didn't do well. But we already know that cars _do_ come in different classes. That's how they're manufactured. Sports cars are different than sedans. SUVs and vans come on truck frames and should class together alot of the time if you're going by specs. So what's going on?
+#### The curse of dimensionality
+What's happening is the *curse of dimensionality*, which is when non-intuitive things start happening when dealing with large predictor datasets. This can be a problem for kNN classifiers (like `pam`), in two different ways.
+* __Distances__: One of the big problems for nearest-neighbor approaches in high dimensions is that the euclidiean distance formula $$D(p,q)=\sqrt[n]{(q_{1} - p_{1})^{2}  + (q_{2} - p_{2})^{2} + \cdots + (q_{n} - p_{n})^{2}}$$ considers _all_ the features. As you add more features, distances become larger, and you have to go farther and farther to find those nearest neighbors. This can often result in picking a neighbor with the 'wrong' class, and soon your classification system is shot, because pretty much every datapoint has a neighbor in the wrong class.
+* __Noise__: The other big problem is that kNN approaches consider all of the predictors when doing the classification. I know this sounds like the last bullet point but it's also bad for a different reason. If the predictors are noisy, that noise is reflected in the the classifications. If you have a predictor that should be completely unrelated to the class, that will be reflected in the classification too.
+
+If the main advantages of PCA are _dimensionality reduction_ (by keeping the PCs that explain a large proportion of variance) and _noise reduction_ (by ignoring the extraneous PCs that don't explain much variance), it looks like it might be something that can help remedy these problems. Lets try projecting the `car90` data down into a lower dimensionality space.
+
+```{r car90npca}
+car90n.pca <- PCA(car90n, graph=F, ncp=5)
+fmscree(car90n.pca)
+```
+There are 5 major PCs in the data, going by either the screeplot or the Kaiser rule. I've kept data on the 5 PCs in the output of `PCA` with the `ncp` flag. Let's try clustering *that* data and looking at how the clustering goes.
+```{r}
+car90n.pca.dist <- daisy(car90n.pca$ind$coord)
+car90n.pca.pam <- pam(car90n.pca.dist, k=3)
+plot(car90n.pca.pam, main='Clustering of PCs of car90n data')
+```
+This way is a lot better! The average silhouttes are much higher and theres only one value that looks misclassified. 
+
+### You can get prinicpal components out of nothing.
 Principal components can always be found. That doesn't necessarily mean they mean something. Here's some randomly generated data: 200 'observations' of 5 variables, all random normal variates. 
 ```{r}
 summary(PCA(matrix(rnorm(1000),ncol=5)))
 ```
-### Special cases and related concepts
+
+Special cases and related concepts
+------
 * Sparse PCA
 * Principal component regression
 
