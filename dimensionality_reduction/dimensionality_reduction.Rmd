@@ -139,32 +139,57 @@ Just by eyeballing it, you can see that PC1 (accounting for ~63% of the variance
 
 Principal component 2 seems to separate cars based on performance. The Ferrari, Maserati, and the Pantera (a sports car) all have high scores on this PC. On the other hand, you have cars like the Toyota Corona, the Hornet, and especially the Valiant are very poorly performing cars. 
 
-```{r}
+```{r plotmtcarspcavar}
 plot(mtcars.pca,choix='var')
 ```
 This plot shows the relationship of the *variables* to the two principal components. Cars that get better mileage are usually economy cars, and mpg shows that. A larger value for mpg results in a lower score on PC1 (the fancy car PC). On the other hand, fancier cars usually have bigger engines, and larger numbers of cylinders, increased displacement, and weight all results in a higher score on PC1. 
 
 Cars that perform poorly on the quarter mile get lower scores on PC2. These are also typically the lower spec'ed cars, so increased values of qsec result in lower scores also get you a lower score on PC1. The opposite is true for number of carbs and horsepower. 
-#### Outlier detection: The Florida 2000 election.
+### Outlier detection: The Florida 2000 election.
 It can be hard to identify outliers in high dimensional spaces, where there are so many things going on. A great place to look for weird things happening is the 2000  Florida election, where weird things did happen. The dataset `Florida` in package `car` has vote counts for each florida county, for 10 presidential candidates. What happens when you look at the vote counts with PCA.  
-```{r}
+```{r floridapca}
 data(Florida, package='car')
 fl.pca <- PCA(Florida[1:10], graph=F)
 plot(fl.pca,choix='ind')
 ```
 Lets look at the first two PCs. So theres an expected group around 0,0. And you can see the large population counties (Dade, Hillsborough, etc) off a little farther. They're going to separate out in any analysis not normalized by population size because their populations are so much larger than the other counties. But the real star of this plot is Volusia county, which is far, far away on PC2 from the rest of the counties. 
-```{r}
+```{r floridapcavarplot}
 plot(fl.pca,choix='var')
 ```
 When we look at the variable plot, we see that high scores on PC2 are driven by voting for some people I've never heard of (Harris, Phillips, Browne). So that's a big hint that somethings up. Lets compare Volusia to two (geographically) nearby counties, Flagler and Seminole. 
 
 ```{r}
-Florida[c('SEMINOLE','FLAGLER','VOLUSIA'),]
+# We'll look at the percents too.
+Florida.percent <- round(100 * Florida[1:10] / Florida[,'Total'],3)
+
+volusia.neighbors <- c('VOLUSIA','SEMINOLE','FLAGLER','LAKE','PUTNAM','MARION','ORANGE')
+Florida[volusia.neighbors,c('GORE','BUSH','PHILLIPS','HARRIS','BROWNE')]
+Florida.percent[volusia.neighbors,c('GORE','BUSH','PHILLIPS','HARRIS','BROWNE')]
 ```
-So it looks like the variable causing the issue is too many people voting for Harris than you might expect. For comparison, the median number of votes for Harris per county was `r median(Florida$HARRIS)`.
+So it looks like the variable causing the issue is too many people voting for Harris than you might expect, given the surrounding counties. For comparison, the median number of votes for Harris per county was `r median(Florida$HARRIS)`.
 
 In 2000, Volusia county's computers had an error that (among other things) gave 9888 erroneous votes to James Harris, the Socialist Workers Party candidate for president. [Here's a New York Times article on it](http://www.nytimes.com/2000/11/10/us/2000-campaign-florida-vote-democrats-tell-problems-polls-across-florida.html?pagewanted=all&src=pm)
-#### Crabs: reducing many size measurements into a one dimensional feature space
+
+What about principal component #3? It still explains 10% of the variance, and has an eigenvalue (slightly) greater than 1. Let's see if there's anything interesting going on there. Let's look at components 1 and 3 together (we already pretty much know what's gone on with PC2 already).
+```{r}
+plot(fl.pca,axes=c(1,3), choix='ind')
+plot(fl.pca,axes=c(1,3), choix='var')
+```
+This time we get a similar scenario to PC2. This time with two datapoints sticking out, Alachua and Palm Beach. Positive scores on PC2 are driven by votes for McReynolds (the Socialist Party candidate) and Buchanan (a far-right candidate from the Reform party). 
+```{r}
+alachua.neighbors <- c('ALACHUA','BRADFORD','UNION','LEVY','PUTNAM','CLAY','COLUMBIA','GILCHRIST')
+Florida[alachua.neighbors,c('GORE','BUSH','MCREYNOLDS','BUCHANAN')]
+Florida.percent[alachua.neighbors,c('GORE','BUSH','MCREYNOLDS','BUCHANAN')]
+```
+Alachua has alot more votes for McReynolds than the surrounding counties (even if it only comes out to `r Florida.percent['ALACHUA','MCREYNOLDS']`%). It's also the home of the University of Florida. Since he's the socialist candidate, I'm pretty comfortable chalking that up to college students' votes. 
+```{r}
+# I'm going with similar counties instead of neighbors, because I think St. Lucie is more like Palm Beach than, say, Hendry County
+palmbeach.similar <- c('PALM.BEACH','BROWARD','ST.LUCIE','MARTIN','DADE')
+Florida[palmbeach.similar,c('GORE','BUSH','MCREYNOLDS','BUCHANAN')]
+Florida.percent[palmbeach.similar,c('GORE','BUSH','MCREYNOLDS','BUCHANAN')]
+```
+Palm Beach on the other had got way more votes for Buchanan than similar counties (even Broward and Dade, which have larger populations). Palm Beach used butterfly ballots which were thought to confuse voters, who intending to vote for Gore voted for Pat Buchanan. This was a major point of contention in tallying votes. [Here's a Wikipedia page on it](http://en.wikipedia.org/wiki/United_States_presidential_election,_2000_Florida_results#Palm_Beach_County.27s_butterfly_ballots).
+### Crabs: reducing many size measurements into a one dimensional feature space
 The `crabs` dataset is a catalog of measurements of 8 variables on 200 crabs. We're concerned right now with continuous variables, frontal lobe size (FL), rear width (RW), carapace length (CL), carapace width (CW), and body depth (BD). But species (O and M) and sex are available.
 
 ```{r loadcrabs}
