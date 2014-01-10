@@ -5,6 +5,8 @@ Dimensionality Reduction with PCA
 library(ggplot2)
 library(FactoMineR)
 library(car)
+library(rpart) # for the car90 dataset
+library(cluster)
 ```
 
 Principal Component Analysis
@@ -21,7 +23,6 @@ R has many options for performing PCA, including the builtin functions `prcomp` 
 I prefer an easy to use package, `FactoMineR` for PCA, and will be using it here. The package also includes factor analysis and other related techniques not discussed here (like correspondence analysis).
 
 ```{r loaddata}
-library(FactoMineR)
 data(UScereal, package='MASS')
 ```
 
@@ -115,10 +116,11 @@ This one is not as clear as the others, but by looking at this in combination wi
 
 You can keep digging through for more information from additional PCs, but I couldn't pick out a good pattern from the loadings for PC3 (lower for increased calories but higher for increased sugar?), and since it already has a low eigenvalue (`r cereal.pca$eig[3,1]`), I'll call the rest of the variation noise.
 
-### More Examples
-#### Comparing cars by their specs.
+More Examples
+------
+### Comparing cars by their specs.
 The `mtcars` dataset has specs and performance for 32 cars from an issue of Motor Trend from 1972. We're going to use 9 of the predictors (skipping two categorical ones). When we look at the correlations, we see there's a good amount of 
-```{r}
+```{r loadmtcars}
 data(mtcars)
 symnum(cor(mtcars[,-c(8,9)]))
 ```
@@ -130,7 +132,7 @@ summary(mtcars.pca)
 fmscree(mtcars.pca)
 ```
 Looking at the Scree plot, its clear that there are only two major principal components, accounting for 85% of the total variance in the dataset. What do they represent?
-```{r}
+```{r plotmtcarspcaind}
 # choix tells whether to plot individual PC scores or PC loadings for variables
 plot(mtcars.pca,choix='ind')
 ```
